@@ -5,8 +5,8 @@ import { SiteFooter } from "@/components/SiteFooter";
 export const Route = createFileRoute("/docs")({
   head: () => ({
     meta: [
-      { title: "Docs — HibernationOS" },
-      { name: "description", content: "Install, configure, and deploy the HibernationOS Discord bot and dashboard." },
+      { title: "Docs — Hibernation Portal" },
+      { name: "description", content: "Install, configure, and deploy the Hibernation Portal Discord bot and dashboard." },
     ],
   }),
   component: Docs,
@@ -87,7 +87,7 @@ function Code({ children }: any) {
 }
 function Block({ children }: any) {
   return (
-    <pre className="rounded-xl glass p-4 overflow-x-auto text-xs font-mono text-foreground whitespace-pre">
+    <pre className="rounded-xl surface p-4 overflow-x-auto text-xs font-mono text-foreground whitespace-pre">
       {children}
     </pre>
   );

@@ -22,7 +22,7 @@ function Linking() {
           Run <code className="px-1.5 py-0.5 rounded bg-secondary font-mono text-xs">/link {code}</code> in any
           server where the bot is installed. Your account will be linked instantly.
         </p>
-        <div className="rounded-2xl bg-deep/60 border border-border/40 p-8 text-center">
+        <div className="rounded-2xl bg-secondary/60 border border-border/40 p-8 text-center">
           <div className="font-mono text-4xl font-semibold text-gradient tracking-wider">{code}</div>
           <p className="text-xs text-muted-foreground mt-3 font-mono">expires in 10 minutes</p>
         </div>

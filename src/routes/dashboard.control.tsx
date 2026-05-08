@@ -45,7 +45,7 @@ function Control() {
             <code className="flex-1 rounded-lg bg-secondary px-4 py-2.5 font-mono text-xs text-muted-foreground">
               hib_••••••••••••••••••••••
             </code>
-            <button className="rounded-full bg-gradient-to-r from-primary to-accent px-4 py-2 text-sm font-medium text-primary-foreground shadow-glow">
+            <button className="rounded-full bg-gradient-to-r from-primary to-accent px-4 py-2 text-sm font-medium text-primary-foreground shadow-brand">
               Generate
             </button>
           </div>
@@ -66,7 +66,7 @@ function Toggle({
       </div>
       <button
         onClick={() => onChange(!value)}
-        className={`relative h-7 w-12 rounded-full transition shrink-0 ${value ? "bg-gradient-to-r from-primary to-accent shadow-neon" : "bg-secondary"}`}
+        className={`relative h-7 w-12 rounded-full transition shrink-0 ${value ? "bg-gradient-to-r from-primary to-accent shadow-brand" : "bg-secondary"}`}
       >
         <span className={`absolute top-1 size-5 rounded-full bg-white transition-all ${value ? "left-6" : "left-1"}`} />
       </button>
