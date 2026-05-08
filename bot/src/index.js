@@ -8,7 +8,7 @@ import {
   EmbedBuilder,
 } from "discord.js";
 import { createClient } from "@supabase/supabase-js";
-import { registerCommands, handleSlashCommand } from "./commands.js";
+import { registerCommands, handleSlashCommand, handlePrefixCommand } from "./commands.js";
 import {
   ensureServer,
   recordActivity,
@@ -73,11 +73,19 @@ client.on(Events.GuildCreate, async (guild) => {
 
 client.on(Events.MessageCreate, async (msg) => {
   if (msg.author.bot || !msg.guild) return;
+  
+  // Handle prefix commands
+  await handlePrefixCommand(supabase, client, msg).catch((err) =>
+    console.error("prefix command error:", err.message)
+  );
+
+  // Record activity for hibernation
   await recordActivity(supabase, msg.guild, {
     channelId: msg.channelId,
     userId: msg.author.id,
     username: msg.author.username,
   });
+  
   // Wake channel + user if hibernating
   await wakeTarget(supabase, client, msg.guild, "channel", msg.channelId, "message");
   await wakeTarget(supabase, client, msg.guild, "user", msg.author.id, "message");
