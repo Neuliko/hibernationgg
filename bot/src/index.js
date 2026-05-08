@@ -45,7 +45,7 @@ const client = new Client({
 });
 
 client.once(Events.ClientReady, async (c) => {
-  console.log(`🌙 HibernationOS online as ${c.user.tag}`);
+  console.log(`🌙 Hibernation Portal online as ${c.user.tag}`);
   console.log(`   guilds: ${c.guilds.cache.size}`);
 
   // Register guilds in DB

@@ -9,7 +9,7 @@ import {
 const commands = [
   new SlashCommandBuilder()
     .setName("hibernate")
-    .setDescription("Hibernation OS — system status and controls")
+    .setDescription("Hibernation Portal — system status and controls")
     .addSubcommand((s) => s.setName("status").setDescription("Show server hibernation status"))
     .addSubcommand((s) => s.setName("wake").setDescription("Wake all hibernating targets in this server"))
     .addSubcommand((s) =>
@@ -70,7 +70,7 @@ async function handleHibernate(supabase, interaction) {
     for (const t of targets || []) counts[t.state]++;
     const embed = new EmbedBuilder()
       .setColor(0xa855f7)
-      .setTitle("🌙 HibernationOS Status")
+      .setTitle("🌙 Hibernation Portal Status")
       .setDescription(`Engine: ${server.hibernation_enabled ? "✅ enabled" : "⛔ disabled"}`)
       .addFields(
         { name: "☀️ Awake", value: String(counts.awake), inline: true },
