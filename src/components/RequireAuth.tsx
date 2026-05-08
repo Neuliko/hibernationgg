@@ -1,8 +1,9 @@
 import { isClerkConfigured } from "@/lib/auth-provider";
 import { Link } from "@tanstack/react-router";
 import { ReactNode } from "react";
+import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 
-export function ClerkSetupBanner({ children }: { children?: ReactNode }) {
+export function ClerkSetupBanner() {
   return (
     <div className="container mx-auto px-6 py-20">
       <div className="glass-strong rounded-2xl p-10 max-w-2xl mx-auto text-center">
@@ -23,7 +24,6 @@ export function ClerkSetupBanner({ children }: { children?: ReactNode }) {
         >
           Back home
         </Link>
-        {children}
       </div>
     </div>
   );
@@ -31,8 +31,6 @@ export function ClerkSetupBanner({ children }: { children?: ReactNode }) {
 
 export function RequireAuth({ children }: { children: ReactNode }) {
   if (!isClerkConfigured) return <ClerkSetupBanner />;
-  // Lazy import so Clerk hooks are only used when configured
-  const { SignedIn, SignedOut, RedirectToSignIn } = require("@clerk/clerk-react");
   return (
     <>
       <SignedIn>{children}</SignedIn>
