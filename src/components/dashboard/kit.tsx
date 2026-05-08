@@ -15,11 +15,11 @@ export function PageHeader({
     <div className="flex items-start justify-between gap-6 mb-10 flex-wrap">
       <div>
         {eyebrow && (
-          <p className="font-mono text-xs uppercase tracking-widest text-accent mb-3">
+          <p className="font-mono text-xs uppercase tracking-widest text-brand mb-3">
             {eyebrow}
           </p>
         )}
-        <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">
+        <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight text-ink">
           {title}
         </h1>
         {subtitle && <p className="text-muted-foreground mt-2 max-w-xl">{subtitle}</p>}
@@ -42,21 +42,22 @@ export function StatCard({
   emoji?: string;
   tone?: "default" | "primary" | "accent" | "frost";
 }) {
-  const toneMap = {
-    default: "from-white/5",
-    primary: "from-primary/15",
-    accent: "from-accent/15",
-    frost: "from-frost/15",
+  const accentBar: Record<string, string> = {
+    default: "bg-muted",
+    primary: "bg-brand",
+    accent: "bg-[oklch(0.7_0.16_240)]",
+    frost: "bg-[oklch(0.78_0.12_220)]",
   };
   return (
-    <div className={`glass rounded-2xl p-6 bg-gradient-to-br ${toneMap[tone]} to-transparent`}>
+    <div className="surface rounded-2xl p-6 relative overflow-hidden">
+      <div className={`absolute left-0 top-0 h-full w-1 ${accentBar[tone]}`} />
       <div className="flex items-center justify-between">
         <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
           {label}
         </span>
         {emoji && <span className="text-xl opacity-80">{emoji}</span>}
       </div>
-      <div className="mt-3 font-display text-3xl font-semibold tracking-tight">{value}</div>
+      <div className="mt-3 font-display text-3xl font-semibold tracking-tight text-ink">{value}</div>
       {hint && <p className="text-xs text-muted-foreground mt-2">{hint}</p>}
     </div>
   );
@@ -72,9 +73,9 @@ export function Panel({
   action?: ReactNode;
 }) {
   return (
-    <div className="glass rounded-2xl p-6">
+    <div className="surface rounded-2xl p-6">
       <div className="flex items-center justify-between mb-5">
-        <h2 className="font-display font-semibold">{title}</h2>
+        <h2 className="font-display font-semibold text-ink">{title}</h2>
         {action}
       </div>
       {children}
@@ -84,10 +85,10 @@ export function Panel({
 
 export function StateBadge({ state }: { state: "awake" | "light" | "deep" | "frozen" }) {
   const map = {
-    awake: { emoji: "☀️", label: "Awake", cls: "bg-green-500/10 text-green-300 border-green-500/30" },
-    light: { emoji: "💠", label: "Light", cls: "bg-frost/10 text-frost border-frost/30" },
-    deep: { emoji: "🌙", label: "Deep", cls: "bg-primary/10 text-primary border-primary/30" },
-    frozen: { emoji: "❄️", label: "Frozen", cls: "bg-accent/10 text-accent border-accent/30" },
+    awake: { emoji: "☀️", label: "Awake", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    light: { emoji: "💠", label: "Light", cls: "bg-sky-50 text-sky-700 border-sky-200" },
+    deep: { emoji: "🌙", label: "Deep", cls: "bg-brand/10 text-brand border-brand/20" },
+    frozen: { emoji: "❄️", label: "Frozen", cls: "bg-indigo-50 text-indigo-700 border-indigo-200" },
   } as const;
   const s = map[state];
   return (
