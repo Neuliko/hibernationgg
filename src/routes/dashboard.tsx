@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import { RequireAuth } from "@/components/RequireAuth";
 import { HibernationLogo } from "@/components/HibernationLogo";
 import { isClerkConfigured } from "@/lib/auth-provider";
+import { UserButton } from "@clerk/clerk-react";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardLayout,
@@ -18,10 +19,6 @@ function DashboardLayout() {
 
 function DashboardShell() {
   const location = useLocation();
-  // dynamic import only when configured
-  const UserButton = isClerkConfigured
-    ? require("@clerk/clerk-react").UserButton
-    : () => null;
 
   const nav = [
     { to: "/dashboard", label: "Overview", emoji: "🌙", exact: true },
@@ -62,10 +59,8 @@ function DashboardShell() {
           })}
         </nav>
         <div className="mt-6 pt-6 border-t border-border/40 flex items-center gap-3">
-          <UserButton afterSignOutUrl="/" />
-          <div className="text-xs text-muted-foreground font-mono">
-            ● online
-          </div>
+          {isClerkConfigured ? <UserButton afterSignOutUrl="/" /> : <div className="size-8 rounded-full bg-secondary" />}
+          <div className="text-xs text-muted-foreground font-mono">● online</div>
         </div>
       </aside>
       <main className="flex-1 min-w-0">
