@@ -3,12 +3,12 @@ import { HibernationLogo } from "./HibernationLogo";
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-50 glass border-b border-border/40">
+    <header className="sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b border-border">
       <div className="container mx-auto flex h-16 items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2.5 group">
-          <HibernationLogo size={28} />
-          <span className="font-display text-lg font-semibold tracking-tight">
-            Hibernation<span className="text-gradient">OS</span>
+          <HibernationLogo size={30} />
+          <span className="font-display text-lg font-semibold tracking-tight text-ink">
+            Hibernation <span className="text-brand">Portal</span>
           </span>
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
@@ -25,7 +25,7 @@ export function SiteHeader() {
           </Link>
           <Link
             to="/sign-up"
-            className="rounded-full bg-gradient-to-r from-primary to-accent px-4 py-2 text-sm font-medium text-primary-foreground shadow-glow hover:opacity-90 transition"
+            className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-brand hover:opacity-90 transition"
           >
             Get started
           </Link>
