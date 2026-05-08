@@ -14,16 +14,273 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bot_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          label: string | null
+          last_used_at: string | null
+          revoked: boolean
+          server_id: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+          revoked?: boolean
+          server_id: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+          revoked?: boolean
+          server_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_tokens_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "discord_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discord_links: {
+        Row: {
+          created_at: string
+          discord_user_id: string
+          discord_username: string | null
+          id: string
+          updated_at: string
+          user_id: string
+          verification_code: string | null
+          verified: boolean
+        }
+        Insert: {
+          created_at?: string
+          discord_user_id: string
+          discord_username?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+          verification_code?: string | null
+          verified?: boolean
+        }
+        Update: {
+          created_at?: string
+          discord_user_id?: string
+          discord_username?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+          verification_code?: string | null
+          verified?: boolean
+        }
+        Relationships: []
+      }
+      discord_servers: {
+        Row: {
+          created_at: string
+          deep_sleep_minutes: number
+          frozen_minutes: number
+          guild_id: string
+          hibernation_enabled: boolean
+          id: string
+          inactivity_threshold_minutes: number
+          light_sleep_minutes: number
+          name: string
+          nickname_automation: boolean
+          owner_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deep_sleep_minutes?: number
+          frozen_minutes?: number
+          guild_id: string
+          hibernation_enabled?: boolean
+          id?: string
+          inactivity_threshold_minutes?: number
+          light_sleep_minutes?: number
+          name: string
+          nickname_automation?: boolean
+          owner_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deep_sleep_minutes?: number
+          frozen_minutes?: number
+          guild_id?: string
+          hibernation_enabled?: boolean
+          id?: string
+          inactivity_threshold_minutes?: number
+          light_sleep_minutes?: number
+          name?: string
+          nickname_automation?: boolean
+          owner_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hibernation_events: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          from_state: Database["public"]["Enums"]["sleep_state"] | null
+          id: string
+          metadata: Json | null
+          server_id: string
+          target_id: string | null
+          to_state: Database["public"]["Enums"]["sleep_state"] | null
+          trigger: string | null
+          type: Database["public"]["Enums"]["event_type"]
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          from_state?: Database["public"]["Enums"]["sleep_state"] | null
+          id?: string
+          metadata?: Json | null
+          server_id: string
+          target_id?: string | null
+          to_state?: Database["public"]["Enums"]["sleep_state"] | null
+          trigger?: string | null
+          type: Database["public"]["Enums"]["event_type"]
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          from_state?: Database["public"]["Enums"]["sleep_state"] | null
+          id?: string
+          metadata?: Json | null
+          server_id?: string
+          target_id?: string | null
+          to_state?: Database["public"]["Enums"]["sleep_state"] | null
+          trigger?: string | null
+          type?: Database["public"]["Enums"]["event_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hibernation_events_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "discord_servers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hibernation_events_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "hibernation_targets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hibernation_targets: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          guild_id: string
+          hibernation_started_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["target_kind"]
+          last_active_at: string
+          original_nickname: string | null
+          server_id: string
+          state: Database["public"]["Enums"]["sleep_state"]
+          target_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          guild_id: string
+          hibernation_started_at?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["target_kind"]
+          last_active_at?: string
+          original_nickname?: string | null
+          server_id: string
+          state?: Database["public"]["Enums"]["sleep_state"]
+          target_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          guild_id?: string
+          hibernation_started_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["target_kind"]
+          last_active_at?: string
+          original_nickname?: string | null
+          server_id?: string
+          state?: Database["public"]["Enums"]["sleep_state"]
+          target_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hibernation_targets_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "discord_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      event_type:
+        | "hibernate"
+        | "wake"
+        | "state_change"
+        | "nickname_change"
+        | "config_change"
+      sleep_state: "awake" | "light" | "deep" | "frozen"
+      target_kind: "channel" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +407,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      event_type: [
+        "hibernate",
+        "wake",
+        "state_change",
+        "nickname_change",
+        "config_change",
+      ],
+      sleep_state: ["awake", "light", "deep", "frozen"],
+      target_kind: ["channel", "user"],
+    },
   },
 } as const
