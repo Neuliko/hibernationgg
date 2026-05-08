@@ -1,4 +1,5 @@
 import "dotenv/config";
+import ws from "ws";
 import {
   Client,
   GatewayIntentBits,
@@ -31,6 +32,7 @@ if (!DISCORD_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
+  realtime: { transport: ws },
 });
 
 const client = new Client({
