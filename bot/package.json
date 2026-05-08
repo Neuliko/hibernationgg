@@ -1,7 +1,7 @@
 {
   "name": "hibernation-bot",
   "version": "1.0.0",
-  "description": "HibernationOS — Discord inactivity engine",
+  "description": "Hibernation Portal — Discord inactivity engine",
   "type": "module",
   "main": "src/index.js",
   "scripts": {

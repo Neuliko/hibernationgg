@@ -182,7 +182,7 @@ export async function applyNickname(client, guild, target, state) {
     const tag = stateEmoji(state);
     const next = `${tag} ${cleanBase}`.slice(0, 32);
     if (member.nickname !== next) {
-      await member.setNickname(next, "HibernationOS state change");
+      await member.setNickname(next, "Hibernation Portal state change");
     }
     if (!target.original_nickname) {
       // Save original via service-role client; need supabase here — re-fetch in caller
@@ -199,7 +199,7 @@ export async function restoreNickname(client, guild, target) {
     const original = target.original_nickname
       ? target.original_nickname
       : stripSleepEmojis(member.nickname || "");
-    await member.setNickname(original || null, "HibernationOS wake");
+    await member.setNickname(original || null, "Hibernation Portal wake");
   } catch (e) {}
 }
 
@@ -217,7 +217,7 @@ async function postHibernateEmbed(client, guild, target, state, startedAt) {
         { name: "🕒 Started", value: `<t:${unix}:F>`, inline: false },
         { name: "⏳ Duration", value: `<t:${unix}:R>`, inline: false }
       )
-      .setFooter({ text: "HibernationOS · idle, beautifully" });
+      .setFooter({ text: "Hibernation Portal · idle, beautifully" });
     await channel.send({ embeds: [embed] }).catch(() => {});
   } catch (e) {}
 }
@@ -235,7 +235,7 @@ async function postWakeEmbed(client, guild, target, durationSec, trigger) {
         { name: "🕒 Wake time", value: `<t:${wakeUnix}:F>`, inline: true },
         { name: "⚡ Trigger", value: trigger, inline: false }
       )
-      .setFooter({ text: "HibernationOS · welcome back" });
+      .setFooter({ text: "Hibernation Portal · welcome back" });
     await channel.send({ embeds: [embed] }).catch(() => {});
   } catch (e) {}
 }

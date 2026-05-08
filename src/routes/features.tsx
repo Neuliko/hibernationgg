@@ -5,8 +5,8 @@ import { SiteFooter } from "@/components/SiteFooter";
 export const Route = createFileRoute("/features")({
   head: () => ({
     meta: [
-      { title: "Features — HibernationOS" },
-      { name: "description", content: "Every feature of the HibernationOS Discord inactivity engine." },
+      { title: "Features — Hibernation Portal" },
+      { name: "description", content: "Every feature of the Hibernation Portal Discord inactivity engine." },
     ],
   }),
   component: Features,
@@ -66,7 +66,7 @@ function Features() {
         </h1>
         <div className="grid md:grid-cols-2 gap-4">
           {groups.map((g) => (
-            <div key={g.title} className="glass rounded-2xl p-7">
+            <div key={g.title} className="surface rounded-2xl p-7">
               <div className="flex items-center gap-3 mb-5">
                 <span className="text-3xl">{g.icon}</span>
                 <h2 className="font-display text-xl font-semibold">{g.title}</h2>

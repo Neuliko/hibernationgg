@@ -1,6 +1,6 @@
-# 🌙 HibernationOS — Discord Bot
+# 🌙 Hibernation Portal — Discord Bot
 
-The bot half of HibernationOS. A long-running Node.js process that watches your Discord server for inactivity, transitions channels and members through sleep states (Light → Deep → Frozen), and wakes them on activity.
+The bot half of Hibernation Portal. A long-running Node.js process that watches your Discord server for inactivity, transitions channels and members through sleep states (Light → Deep → Frozen), and wakes them on activity.
 
 ## Quick start
 

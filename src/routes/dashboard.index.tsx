@@ -16,8 +16,8 @@ function Overview() {
         title="Server status"
         subtitle="Live system telemetry from the Hibernation engine."
         actions={
-          <div className="glass rounded-full px-4 py-2 text-xs font-mono flex items-center gap-2">
-            <span className="size-2 rounded-full bg-green-400 animate-pulse-glow" />
+          <div className="surface rounded-full px-4 py-2 text-xs font-mono flex items-center gap-2">
+            <span className="size-2 rounded-full bg-emerald-500 animate-pulse-dot" />
             {demoStats.serverStatus}
           </div>
         }
@@ -39,7 +39,7 @@ function Overview() {
                   key={t.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center justify-between rounded-xl bg-white/[0.02] hover:bg-white/[0.05] transition px-4 py-3 border border-border/30"
+                  className="flex items-center justify-between rounded-xl bg-secondary/40 hover:bg-secondary transition px-4 py-3 border border-border"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-mono text-muted-foreground w-12">
@@ -62,7 +62,7 @@ function Overview() {
         <Panel title="⚡ Activity feed">
           <div className="space-y-3">
             {demoEvents.slice(0, 6).map((e) => (
-              <div key={e.id} className="text-sm border-l-2 border-primary/40 pl-3">
+              <div key={e.id} className="text-sm border-l-2 border-brand/40 pl-3">
                 <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   {formatDistanceToNow(e.time, { addSuffix: true })}
                 </div>
