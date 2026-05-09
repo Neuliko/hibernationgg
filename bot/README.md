@@ -23,10 +23,15 @@ Invite scopes: `bot`, `applications.commands`.
 
 ## Slash commands
 
+- `/ping` — latency, shard, cluster, server count, language, version
 - `/hibernate status` — current sleep counts
 - `/hibernate toggle enabled:true|false` — master switch
 - `/hibernate wake` — wake everything in this server
 - `/link CODE` — link your Discord identity to your dashboard account
+
+> Commands register **globally** on every boot. Global propagation can take up to 1 hour the first time. For instant updates in one test server, set `GUILD_ID=<your-server-id>` — the bot will *also* register guild-scoped commands which appear immediately.
+> If commands still don't show: re-invite the bot using a URL that includes the **`applications.commands`** scope (not just `bot`).
+> You can also force-refresh without restarting the gateway: `npm run register`.
 
 ## Environment
 
@@ -47,11 +52,21 @@ The bot keeps a persistent Discord gateway connection, so serverless platforms (
 2. Add the env vars from `.env.example`
 3. Done. The bot stays online 24/7. (`railway.json` included.)
 
-### Render
-1. New → Background Worker
-2. Root directory: `bot`
-3. Build: `npm install` · Start: `npm start`
-4. Add env vars. (`render.yaml` included.)
+### Render (recommended for this project)
+
+1. Push this repo to GitHub.
+2. In Render → **New → Background Worker** (a worker, **not** a web service — the bot has no HTTP port).
+3. **Connect repository**, then set **Root Directory** to `bot`.
+4. Runtime: `Node`. Build command: `npm install`. Start command: `npm start`.
+5. Add environment variables (Settings → Environment):
+   - `DISCORD_TOKEN` — bot token from the Discord Developer Portal
+   - `SUPABASE_URL` — value from this project's `.env` (`VITE_SUPABASE_URL`)
+   - `SUPABASE_SERVICE_ROLE_KEY` — Lovable Cloud → Settings → API
+   - *(optional)* `GUILD_ID` — your test server id for instant slash-command updates
+6. Click **Create Worker**. Render will install, start, and keep the bot online 24/7.
+7. After the first boot, run `/ping` in your server. If it doesn't appear, wait ~1 minute and re-invite with the `applications.commands` scope.
+
+A `render.yaml` blueprint is included — you can also do **New → Blueprint** and point at this repo to skip the form.
 
 ### VPS / Docker
 ```bash
