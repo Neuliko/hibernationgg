@@ -9,9 +9,9 @@ export const Route = createFileRoute("/dashboard/control")({
 function Control() {
   const [hibEnabled, setHibEnabled] = useState(true);
   const [nicknames, setNicknames] = useState(true);
-  const [light, setLight] = useState(60);
-  const [deep, setDeep] = useState(360);
-  const [frozen, setFrozen] = useState(1440);
+  const [light, setLight] = useState(180);    // 3h
+  const [deep, setDeep] = useState(1440);     // 1 day
+  const [frozen, setFrozen] = useState(10080); // 1 week
 
   return (
     <div className="p-6 md:p-10 max-w-4xl">
@@ -31,9 +31,9 @@ function Control() {
 
         <Panel title="⏳ Sleep state thresholds">
           <div className="space-y-5">
-            <Slider emoji="💠" label="Light Sleep" value={light} onChange={setLight} min={5} max={240} unit="min" />
-            <Slider emoji="🌙" label="Deep Sleep" value={deep} onChange={setDeep} min={60} max={1440} unit="min" />
-            <Slider emoji="❄️" label="Frozen" value={frozen} onChange={setFrozen} min={360} max={10080} unit="min" />
+            <Slider emoji="💠" label="Light Sleep (default 3 h)" value={light} onChange={setLight} min={15} max={720} unit="min" />
+            <Slider emoji="🌙" label="Sleeping (default 1 day)" value={deep} onChange={setDeep} min={60} max={4320} unit="min" />
+            <Slider emoji="❄️" label="Hibernating (default 1 week)" value={frozen} onChange={setFrozen} min={1440} max={20160} unit="min" />
           </div>
         </Panel>
 
