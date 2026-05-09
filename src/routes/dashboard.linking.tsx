@@ -11,7 +11,8 @@ export const Route = createFileRoute("/dashboard/linking")({
 });
 
 function Linking() {
-  const { user } = isClerkConfigured ? useUser() : { user: null as any };
+  const clerk = useUser();
+  const user = isClerkConfigured ? clerk.user : null;
   const create = useServerFn(createLinkCode);
   const get = useServerFn(getMyLink);
   const [code, setCode] = useState<string | null>(null);
