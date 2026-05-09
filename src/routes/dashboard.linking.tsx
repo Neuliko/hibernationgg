@@ -4,15 +4,13 @@ import { useEffect, useState } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useServerFn } from "@tanstack/react-start";
 import { createLinkCode, getMyLink } from "@/lib/linking.functions";
-import { isClerkConfigured } from "@/lib/auth-provider";
 
 export const Route = createFileRoute("/dashboard/linking")({
   component: Linking,
 });
 
 function Linking() {
-  const clerk = useUser();
-  const user = isClerkConfigured ? clerk.user : null;
+  const { user } = useUser();
   const create = useServerFn(createLinkCode);
   const get = useServerFn(getMyLink);
   const [code, setCode] = useState<string | null>(null);
