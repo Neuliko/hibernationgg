@@ -55,7 +55,7 @@ export type Database = {
       discord_links: {
         Row: {
           created_at: string
-          discord_user_id: string
+          discord_user_id: string | null
           discord_username: string | null
           id: string
           updated_at: string
@@ -65,7 +65,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          discord_user_id: string
+          discord_user_id?: string | null
           discord_username?: string | null
           id?: string
           updated_at?: string
@@ -75,7 +75,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          discord_user_id?: string
+          discord_user_id?: string | null
           discord_username?: string | null
           id?: string
           updated_at?: string
