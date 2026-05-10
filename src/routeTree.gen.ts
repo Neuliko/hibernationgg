@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SsoCallbackRouteImport } from './routes/sso-callback'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as FeaturesRouteImport } from './routes/features'
@@ -21,6 +22,11 @@ import { Route as DashboardLinkingRouteImport } from './routes/dashboard.linking
 import { Route as DashboardControlRouteImport } from './routes/dashboard.control'
 import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard.analytics'
 
+const SsoCallbackRoute = SsoCallbackRouteImport.update({
+  id: '/sso-callback',
+  path: '/sso-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/features': typeof FeaturesRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/sso-callback': typeof SsoCallbackRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/control': typeof DashboardControlRoute
   '/dashboard/linking': typeof DashboardLinkingRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/features': typeof FeaturesRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/sso-callback': typeof SsoCallbackRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/control': typeof DashboardControlRoute
   '/dashboard/linking': typeof DashboardLinkingRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/features': typeof FeaturesRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/sso-callback': typeof SsoCallbackRoute
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/control': typeof DashboardControlRoute
   '/dashboard/linking': typeof DashboardLinkingRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/features'
     | '/sign-in'
     | '/sign-up'
+    | '/sso-callback'
     | '/dashboard/analytics'
     | '/dashboard/control'
     | '/dashboard/linking'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/features'
     | '/sign-in'
     | '/sign-up'
+    | '/sso-callback'
     | '/dashboard/analytics'
     | '/dashboard/control'
     | '/dashboard/linking'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/features'
     | '/sign-in'
     | '/sign-up'
+    | '/sso-callback'
     | '/dashboard/analytics'
     | '/dashboard/control'
     | '/dashboard/linking'
@@ -164,10 +176,18 @@ export interface RootRouteChildren {
   FeaturesRoute: typeof FeaturesRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  SsoCallbackRoute: typeof SsoCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sso-callback': {
+      id: '/sso-callback'
+      path: '/sso-callback'
+      fullPath: '/sso-callback'
+      preLoaderRoute: typeof SsoCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sign-up': {
       id: '/sign-up'
       path: '/sign-up'
@@ -275,6 +295,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeaturesRoute: FeaturesRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  SsoCallbackRoute: SsoCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
