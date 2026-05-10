@@ -21,11 +21,17 @@ The bot needs these Discord permissions when invited:
 
 Invite scopes: `bot`, `applications.commands`.
 
-## Slash commands
+## Commands
+
+Only `/ping` is a slash command. Everything else uses the prefix (default `!`, configurable via `COMMAND_PREFIX`).
 
 - `/ping` — latency, shard, cluster, server count, language, version
-- `/hibernate status` — current sleep counts
-- `/hibernate toggle enabled:true|false` — master switch
+- `!hibernate status` — current sleep counts
+- `!hibernate toggle on|off` — master switch (requires Manage Guild)
+- `!hibernate wake` — wake everything in this server (requires Manage Guild)
+- `!link CODE` — link your Discord identity to your dashboard account
+
+> Prefix commands need the **Message Content Intent** enabled in the Discord Developer Portal → Bot → Privileged Gateway Intents.
 - `/hibernate wake` — wake everything in this server
 - `/link CODE` — link your Discord identity to your dashboard account
 
