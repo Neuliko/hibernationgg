@@ -45,8 +45,6 @@ export async function registerCommands(client) {
 export async function handleSlashCommand(supabase, client, interaction) {
   const { commandName } = interaction;
   if (commandName === "ping") return handlePing(client, interaction);
-  if (commandName === "hibernate") return handleHibernate(supabase, interaction);
-  if (commandName === "link") return handleLink(supabase, interaction);
 }
 
 async function handlePing(client, interaction) {
