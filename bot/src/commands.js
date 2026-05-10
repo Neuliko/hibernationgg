@@ -191,7 +191,12 @@ async function claimLinkCode(supabase, ctx, code) {
   const user = isInteraction ? ctx.user : ctx.author;
   const replyOpts = isInteraction ? { ephemeral: true } : {};
 
-  const normalized = code.trim().toUpperCase();
+  // Accept any of: "HIB-DCT3DC", "hib-dct3dc", "DCT3DC", "dct3dc", " HIB DCT3DC ", etc.
+  // Strip whitespace + hyphens, uppercase, then re-add the canonical "HIB-" prefix.
+  const cleaned = code.replace(/[\s-]/g, "").toUpperCase();
+  const suffix = cleaned.startsWith("HIB") ? cleaned.slice(3) : cleaned;
+  const normalized = `HIB-${suffix}`;
+
   const { data: link } = await supabase
     .from("discord_links")
     .select("*")
@@ -200,7 +205,10 @@ async function claimLinkCode(supabase, ctx, code) {
     .maybeSingle();
 
   if (!link) {
-    return ctx.reply({ content: "❌ Invalid or expired code. Generate a new one in the dashboard.", ...replyOpts });
+    return ctx.reply({
+      content: `❌ Code \`${normalized}\` not found. Generate a fresh one from **Dashboard → Linking** and try again — codes are single-use.`,
+      ...replyOpts,
+    });
   }
 
   await supabase
