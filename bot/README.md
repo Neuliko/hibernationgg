@@ -21,13 +21,17 @@ The bot needs these Discord permissions when invited:
 
 Invite scopes: `bot`, `applications.commands`.
 
-## Slash commands
+## Commands
+
+Only `/ping` is a slash command. Everything else uses the prefix (default `!`, configurable via `COMMAND_PREFIX`).
 
 - `/ping` — latency, shard, cluster, server count, language, version
-- `/hibernate status` — current sleep counts
-- `/hibernate toggle enabled:true|false` — master switch
-- `/hibernate wake` — wake everything in this server
-- `/link CODE` — link your Discord identity to your dashboard account
+- `!hibernate status` — current sleep counts
+- `!hibernate toggle on|off` — master switch (requires Manage Guild)
+- `!hibernate wake` — wake everything in this server (requires Manage Guild)
+- `!link CODE` — link your Discord identity to your dashboard account
+
+> Prefix commands need the **Message Content Intent** enabled in the Discord Developer Portal → Bot → Privileged Gateway Intents.
 
 > Commands register **globally** on every boot. Global propagation can take up to 1 hour the first time. For instant updates in one test server, set `GUILD_ID=<your-server-id>` — the bot will *also* register guild-scoped commands which appear immediately.
 > If commands still don't show: re-invite the bot using a URL that includes the **`applications.commands`** scope (not just `bot`).
