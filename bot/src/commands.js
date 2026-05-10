@@ -186,64 +186,6 @@ async function handlePingPrefix(client, message) {
   await reply.edit({ content: " ", embeds: [embed] });
 }
 
-async function handleHibernate(supabase, interaction) {
-  const sub = interaction.options.getSubcommand();
-  const { data: server } = await supabase
-    .from("discord_servers")
-    .select("*")
-    .eq("guild_id", interaction.guildId)
-    .maybeSingle();
-  if (!server) {
-    return interaction.reply({ content: "Server not registered yet.", ephemeral: true });
-  }
-
-  if (sub === "status") {
-    const { data: targets } = await supabase
-      .from("hibernation_targets")
-      .select("state")
-      .eq("server_id", server.id);
-    const counts = { awake: 0, light: 0, deep: 0, frozen: 0 };
-    for (const t of targets || []) counts[t.state]++;
-    const embed = new EmbedBuilder()
-      .setColor(0x4f46e5)
-      .setTitle("🌙 Hibernation Portal Status")
-      .setDescription(`Engine: ${server.hibernation_enabled ? "✅ enabled" : "⛔ disabled"}`)
-      .addFields(
-        { name: "☀️ Awake", value: String(counts.awake), inline: true },
-        { name: "💠 Light", value: String(counts.light), inline: true },
-        { name: "🌙 Deep", value: String(counts.deep), inline: true },
-        { name: "❄️ Frozen", value: String(counts.frozen), inline: true }
-      );
-    return interaction.reply({ embeds: [embed] });
-  }
-
-  if (sub === "toggle") {
-    const enabled = interaction.options.getBoolean("enabled", true);
-    await supabase
-      .from("discord_servers")
-      .update({ hibernation_enabled: enabled })
-      .eq("id", server.id);
-    return interaction.reply({
-      content: `Hibernation engine ${enabled ? "✅ enabled" : "⛔ disabled"}.`,
-      ephemeral: true,
-    });
-  }
-
-  if (sub === "wake") {
-    await supabase
-      .from("hibernation_targets")
-      .update({ state: "awake", hibernation_started_at: null, last_active_at: new Date().toISOString() })
-      .eq("server_id", server.id)
-      .neq("state", "awake");
-    return interaction.reply({ content: "☀️ Woke all hibernating targets.", ephemeral: true });
-  }
-}
-
-async function handleLink(supabase, interaction) {
-  const code = interaction.options.getString("code", true);
-  return claimLinkCode(supabase, interaction, code);
-}
-
 async function claimLinkCode(supabase, ctx, code) {
   const isInteraction = typeof ctx.reply === "function" && "user" in ctx;
   const user = isInteraction ? ctx.user : ctx.author;
