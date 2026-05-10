@@ -20,24 +20,6 @@ const commands = [
   new SlashCommandBuilder()
     .setName("ping")
     .setDescription("Show bot latency, shard, cluster, and version info"),
-  new SlashCommandBuilder()
-    .setName("hibernate")
-    .setDescription("Hibernation Portal — system status and controls")
-    .addSubcommand((s) => s.setName("status").setDescription("Show server hibernation status"))
-    .addSubcommand((s) => s.setName("wake").setDescription("Wake all hibernating targets in this server"))
-    .addSubcommand((s) =>
-      s
-        .setName("toggle")
-        .setDescription("Enable or disable the hibernation engine")
-        .addBooleanOption((o) => o.setName("enabled").setDescription("On / off").setRequired(true))
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
-  new SlashCommandBuilder()
-    .setName("link")
-    .setDescription("Link your Discord account to your dashboard account")
-    .addStringOption((o) =>
-      o.setName("code").setDescription("Verification code from the dashboard").setRequired(true)
-    ),
 ].map((c) => c.toJSON());
 
 export async function registerCommands(client) {
