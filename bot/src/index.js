@@ -1,9 +1,11 @@
 // Discord client + Supabase wiring. Robust for long-running deploys:
+//  - HTTP health server bound to PORT (required by Railway/Render web services)
 //  - no realtime websocket (bot is write-only into Supabase)
 //  - every event handler is wrapped in a safe boundary
 //  - presence updates are debounced per user
-//  - process never exits on unhandled rejections, only logs
+//  - uncaughtException exits cleanly so the platform can restart
 import "dotenv/config";
+import { createServer } from "node:http";
 import { Client, GatewayIntentBits, Partials, Events } from "discord.js";
 import { createClient } from "@supabase/supabase-js";
 import { registerSlashCommands, handleSlash, handlePrefix, PREFIX } from "./commands.js";
@@ -14,6 +16,7 @@ const {
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
   SCAN_INTERVAL_MS = 60000,
+  PORT = 3000,
 } = process.env;
 
 if (!DISCORD_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -21,10 +24,31 @@ if (!DISCORD_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   process.exit(1);
 }
 
+// ─── Health check HTTP server ─────────────────────────────────────────────────
+// Railway and Render web-service deployments require something listening on PORT.
+// This tiny server also exposes a /health endpoint for uptime monitors.
+let botReady = false;
+const healthServer = createServer((req, res) => {
+  if (req.url === "/health" || req.url === "/") {
+    const status = botReady ? 200 : 503;
+    res.writeHead(status, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: botReady, uptime: process.uptime() }));
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
+healthServer.listen(Number(PORT), "0.0.0.0", () => {
+  console.log(`🩺 Health server listening on port ${PORT}`);
+});
+healthServer.on("error", (e) => console.error("[health server]", e.message));
+
+// ─── Supabase ─────────────────────────────────────────────────────────────────
 export const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+// ─── Discord client ───────────────────────────────────────────────────────────
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -53,6 +77,7 @@ setInterval(() => {
 let scanTimer = null;
 
 client.once(Events.ClientReady, safe("ready", async (c) => {
+  botReady = true;
   console.log(`🌙 Hibernation Portal online · ${c.user.tag} · guilds=${c.guilds.cache.size} · prefix="${PREFIX}"`);
 
   for (const guild of c.guilds.cache.values()) {
@@ -81,13 +106,11 @@ client.on(Events.GuildCreate, safe("guildCreate", async (guild) => {
 client.on(Events.MessageCreate, safe("messageCreate", async (msg) => {
   if (msg.author.bot || !msg.guild) return;
 
-  // Run prefix-command handler. It returns true if a command matched.
   const wasCommand = await handlePrefix(supabase, client, msg).catch((err) => {
     console.error("prefix", err?.message);
     return false;
   });
 
-  // Always record real human activity (commands count too).
   await recordActivity(supabase, msg.guild, {
     channelId: msg.channelId,
     userId: msg.author.id,
@@ -123,7 +146,7 @@ client.on(Events.InteractionCreate, safe("interaction", async (interaction) => {
   await handleSlash(supabase, client, interaction);
 }));
 
-// Gateway resilience
+// ─── Gateway resilience ───────────────────────────────────────────────────────
 client.on(Events.Error, (e) => console.error("[client.error]", e?.message || e));
 client.on(Events.Warn, (w) => console.warn("[client.warn]", w));
 client.on(Events.ShardError, (e, id) => console.error(`[shard ${id} error]`, e?.message || e));
@@ -131,18 +154,28 @@ client.on(Events.ShardDisconnect, (ev, id) => console.warn(`[shard ${id} disconn
 client.on(Events.ShardReconnecting, (id) => console.log(`[shard ${id}] reconnecting…`));
 client.on(Events.ShardResume, (id, replayed) => console.log(`[shard ${id}] resumed (${replayed} events)`));
 
+// ─── Process error handlers ───────────────────────────────────────────────────
 process.on("unhandledRejection", (e) => console.error("[unhandledRejection]", e?.message || e));
-process.on("uncaughtException", (e) => console.error("[uncaughtException]", e?.message || e));
 
+// Exit on uncaught exceptions so the platform (Render/Railway) auto-restarts the process.
+process.on("uncaughtException", (e) => {
+  console.error("[uncaughtException] fatal — restarting:", e?.message || e, e?.stack || "");
+  process.exit(1);
+});
+
+// ─── Graceful shutdown ────────────────────────────────────────────────────────
 const shutdown = async (sig) => {
   console.log(`\n${sig} received, shutting down…`);
+  botReady = false;
   if (scanTimer) clearInterval(scanTimer);
   try { await client.destroy(); } catch {}
+  healthServer.close();
   process.exit(0);
 };
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
+// ─── Login ────────────────────────────────────────────────────────────────────
 client.login(DISCORD_TOKEN).catch((e) => {
   console.error("❌ login failed:", e?.message || e);
   process.exit(1);
