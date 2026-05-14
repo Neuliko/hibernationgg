@@ -1,0 +1,49 @@
+modules = ["web", "nodejs-22"]
+[agent]
+expertMode = true
+stack = "BEST_EFFORT_FALLBACK"
+
+[nix]
+channel = "stable-25_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[userenv]
+
+[userenv.shared]
+VITE_SUPABASE_URL = "https://hwdbgmmvkirbcehsbtkl.supabase.co"
+VITE_SUPABASE_PROJECT_ID = "hwdbgmmvkirbcehsbtkl"
+VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3ZGJnbW12a2lyYmNlaHNidGtsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxOTgwNjQsImV4cCI6MjA5Mzc3NDA2NH0.-9KEiLYx6j6mjFB-qN-2Znn95-A3MjfHZc9GWwqdjVY"
+VITE_CLERK_PUBLISHABLE_KEY = "pk_test_c3VidGxlLWRpbmdvLTUzLmNsZXJrLmFjY291bnRzLmRldiQ"
+SUPABASE_URL = "https://hwdbgmmvkirbcehsbtkl.supabase.co"
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["npm", "run", "preview"]
+build = ["npm", "run", "build"]
