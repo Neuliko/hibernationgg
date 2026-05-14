@@ -1,0 +1,149 @@
+// Discord client + Supabase wiring. Robust for long-running deploys:
+//  - no realtime websocket (bot is write-only into Supabase)
+//  - every event handler is wrapped in a safe boundary
+//  - presence updates are debounced per user
+//  - process never exits on unhandled rejections, only logs
+import "dotenv/config";
+import { Client, GatewayIntentBits, Partials, Events } from "discord.js";
+import { createClient } from "@supabase/supabase-js";
+import { registerSlashCommands, handleSlash, handlePrefix, PREFIX } from "./commands.js";
+import { ensureServer, recordActivity, scanAndHibernate, wakeTarget } from "./hibernation.js";
+
+const {
+  DISCORD_TOKEN,
+  SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+  SCAN_INTERVAL_MS = 60000,
+} = process.env;
+
+if (!DISCORD_TOKEN || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("❌ Missing env vars. See .env.example");
+  process.exit(1);
+}
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildPresences,
+  ],
+  partials: [Partials.Channel, Partials.Message],
+});
+
+const safe = (label, fn) => async (...args) => {
+  try { await fn(...args); } catch (err) {
+    console.error(`[${label}]`, err?.message || err);
+  }
+};
+
+// Debounce presence writes — Discord fires these constantly.
+const PRESENCE_DEBOUNCE_MS = 60_000;
+const lastPresence = new Map();
+setInterval(() => {
+  const cutoff = Date.now() - PRESENCE_DEBOUNCE_MS * 5;
+  for (const [k, v] of lastPresence) if (v < cutoff) lastPresence.delete(k);
+}, 5 * 60_000).unref();
+
+let scanTimer = null;
+
+client.once(Events.ClientReady, safe("ready", async (c) => {
+  console.log(`🌙 Hibernation Portal online · ${c.user.tag} · guilds=${c.guilds.cache.size} · prefix="${PREFIX}"`);
+
+  for (const guild of c.guilds.cache.values()) {
+    await ensureServer(supabase, guild).catch((e) =>
+      console.error("ensureServer", guild.id, e?.message)
+    );
+  }
+
+  await registerSlashCommands(c).catch((e) => console.error("registerSlash", e?.message));
+
+  if (scanTimer) clearInterval(scanTimer);
+  scanTimer = setInterval(() => {
+    for (const guild of client.guilds.cache.values()) {
+      scanAndHibernate(supabase, client, guild).catch((err) =>
+        console.error("scan", guild.id, err?.message)
+      );
+    }
+  }, Number(SCAN_INTERVAL_MS));
+  scanTimer.unref?.();
+}));
+
+client.on(Events.GuildCreate, safe("guildCreate", async (guild) => {
+  await ensureServer(supabase, guild);
+}));
+
+client.on(Events.MessageCreate, safe("messageCreate", async (msg) => {
+  if (msg.author.bot || !msg.guild) return;
+
+  // Run prefix-command handler. It returns true if a command matched.
+  const wasCommand = await handlePrefix(supabase, client, msg).catch((err) => {
+    console.error("prefix", err?.message);
+    return false;
+  });
+
+  // Always record real human activity (commands count too).
+  await recordActivity(supabase, msg.guild, {
+    channelId: msg.channelId,
+    userId: msg.author.id,
+    username: msg.author.username,
+  }).catch((e) => console.error("recordActivity", e?.message));
+
+  await wakeTarget(supabase, client, msg.guild, "channel", msg.channelId, "message")
+    .catch((e) => console.error("wake channel", e?.message));
+  await wakeTarget(supabase, client, msg.guild, "user", msg.author.id, "message")
+    .catch((e) => console.error("wake user", e?.message));
+
+  void wasCommand;
+}));
+
+client.on(Events.PresenceUpdate, safe("presenceUpdate", async (_old, presence) => {
+  if (!presence?.guild || !presence.user || presence.user.bot) return;
+  if (!presence.status || presence.status === "offline") return;
+
+  const key = `${presence.guild.id}:${presence.user.id}`;
+  const now = Date.now();
+  if (now - (lastPresence.get(key) || 0) < PRESENCE_DEBOUNCE_MS) return;
+  lastPresence.set(key, now);
+
+  await recordActivity(supabase, presence.guild, {
+    userId: presence.user.id,
+    username: presence.user.username,
+  });
+  await wakeTarget(supabase, client, presence.guild, "user", presence.user.id, "presence");
+}));
+
+client.on(Events.InteractionCreate, safe("interaction", async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+  await handleSlash(supabase, client, interaction);
+}));
+
+// Gateway resilience
+client.on(Events.Error, (e) => console.error("[client.error]", e?.message || e));
+client.on(Events.Warn, (w) => console.warn("[client.warn]", w));
+client.on(Events.ShardError, (e, id) => console.error(`[shard ${id} error]`, e?.message || e));
+client.on(Events.ShardDisconnect, (ev, id) => console.warn(`[shard ${id} disconnect]`, ev?.code));
+client.on(Events.ShardReconnecting, (id) => console.log(`[shard ${id}] reconnecting…`));
+client.on(Events.ShardResume, (id, replayed) => console.log(`[shard ${id}] resumed (${replayed} events)`));
+
+process.on("unhandledRejection", (e) => console.error("[unhandledRejection]", e?.message || e));
+process.on("uncaughtException", (e) => console.error("[uncaughtException]", e?.message || e));
+
+const shutdown = async (sig) => {
+  console.log(`\n${sig} received, shutting down…`);
+  if (scanTimer) clearInterval(scanTimer);
+  try { await client.destroy(); } catch {}
+  process.exit(0);
+};
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+client.login(DISCORD_TOKEN).catch((e) => {
+  console.error("❌ login failed:", e?.message || e);
+  process.exit(1);
+});
