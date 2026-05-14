@@ -12,5 +12,7 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      - key: COMMAND_PREFIX
+        value: "h!"
       - key: SCAN_INTERVAL_MS
         value: "60000"
