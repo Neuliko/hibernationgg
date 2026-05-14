@@ -54,34 +54,40 @@ export type Database = {
       }
       discord_links: {
         Row: {
-          created_at: string
+          id: string
+          clerk_user_id: string
+          verification_code: string | null
+          expires_at: string | null
+          verified: boolean
           discord_user_id: string | null
           discord_username: string | null
-          id: string
+          linked_at: string | null
+          created_at: string
           updated_at: string
-          user_id: string
-          verification_code: string | null
-          verified: boolean
         }
         Insert: {
-          created_at?: string
+          id?: string
+          clerk_user_id: string
+          verification_code?: string | null
+          expires_at?: string | null
+          verified?: boolean
           discord_user_id?: string | null
           discord_username?: string | null
-          id?: string
+          linked_at?: string | null
+          created_at?: string
           updated_at?: string
-          user_id: string
-          verification_code?: string | null
-          verified?: boolean
         }
         Update: {
-          created_at?: string
+          id?: string
+          clerk_user_id?: string
+          verification_code?: string | null
+          expires_at?: string | null
+          verified?: boolean
           discord_user_id?: string | null
           discord_username?: string | null
-          id?: string
+          linked_at?: string | null
+          created_at?: string
           updated_at?: string
-          user_id?: string
-          verification_code?: string | null
-          verified?: boolean
         }
         Relationships: []
       }

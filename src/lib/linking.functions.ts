@@ -1,19 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-function genCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let s = "HIB-";
-  for (let i = 0; i < 6; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)];
-  return s;
+function genCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "HIB-";
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
 }
 
-/**
- * Create a verification code that the bot will claim via /link CODE.
- * We accept the Clerk userId from the client because Clerk JWTs are not
- * verifiable inside Supabase RLS in this template — server validation
- * happens at the Clerk middleware layer in production.
- */
 export const createLinkCode = createServerFn({ method: "POST" })
   .inputValidator((input: { clerkUserId: string }) => {
     if (!input?.clerkUserId || typeof input.clerkUserId !== "string") {
@@ -23,45 +17,45 @@ export const createLinkCode = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     const code = genCode();
-    // Pseudo-uuid derived from the Clerk user id so we can look it up later.
-    // We use a deterministic UUID v5-ish hash so repeat calls update the same row.
-    const userUuid = await clerkIdToUuid(data.clerkUserId);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
     const { error } = await supabaseAdmin
       .from("discord_links")
       .upsert(
         {
-          user_id: userUuid,
+          clerk_user_id: data.clerkUserId,
           verification_code: code,
+          expires_at: expiresAt,
           verified: false,
+          discord_user_id: null,
+          discord_username: null,
+          linked_at: null,
         },
-        { onConflict: "user_id" }
+        { onConflict: "clerk_user_id" }
       );
-    if (error) throw new Error(error.message);
 
-    return { code };
+    if (error) throw new Error(error.message);
+    return { code, expiresAt };
   });
 
 export const getMyLink = createServerFn({ method: "POST" })
   .inputValidator((input: { clerkUserId: string }) => input)
   .handler(async ({ data }) => {
-    const userUuid = await clerkIdToUuid(data.clerkUserId);
     const { data: link } = await supabaseAdmin
       .from("discord_links")
       .select("*")
-      .eq("user_id", userUuid)
+      .eq("clerk_user_id", data.clerkUserId)
       .maybeSingle();
     return { link };
   });
 
-async function clerkIdToUuid(clerkId: string): Promise<string> {
-  // SHA-256 → first 16 bytes → format as UUID v4-ish. Deterministic per Clerk id.
-  const enc = new TextEncoder();
-  const buf = await crypto.subtle.digest("SHA-256", enc.encode("clerk:" + clerkId));
-  const b = new Uint8Array(buf).slice(0, 16);
-  // Set version (4) and variant bits
-  b[6] = (b[6] & 0x0f) | 0x40;
-  b[8] = (b[8] & 0x3f) | 0x80;
-  const hex = Array.from(b).map((x) => x.toString(16).padStart(2, "0")).join("");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
+export const unlinkDiscord = createServerFn({ method: "POST" })
+  .inputValidator((input: { clerkUserId: string }) => input)
+  .handler(async ({ data }) => {
+    const { error } = await supabaseAdmin
+      .from("discord_links")
+      .delete()
+      .eq("clerk_user_id", data.clerkUserId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

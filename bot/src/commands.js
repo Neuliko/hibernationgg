@@ -23,6 +23,12 @@ const slash = [
   new SlashCommandBuilder()
     .setName("ping")
     .setDescription("Bot latency, shard, cluster, language, version"),
+  new SlashCommandBuilder()
+    .setName("link")
+    .setDescription("Link your Discord account to the Hibernation Portal dashboard")
+    .addStringOption((opt) =>
+      opt.setName("code").setDescription("Verification code from the dashboard (e.g. HIB-ABC123)").setRequired(true)
+    ),
 ].map((c) => c.toJSON());
 
 export async function registerSlashCommands(client) {
@@ -43,6 +49,7 @@ export async function registerSlashCommands(client) {
 
 export async function handleSlash(supabase, client, interaction) {
   if (interaction.commandName === "ping") return slashPing(client, interaction);
+  if (interaction.commandName === "link") return slashLink(supabase, interaction);
 }
 
 // ─── Prefix dispatcher ─────────────────────────────────────────────────────
@@ -95,6 +102,89 @@ async function slashPing(client, interaction) {
   await interaction.editReply({ embeds: [embed] });
 }
 
+// ─── /link ─────────────────────────────────────────────────────────────────
+async function slashLink(supabase, interaction) {
+  await interaction.deferReply({ ephemeral: true });
+  const raw = interaction.options.getString("code", true);
+  const result = await claimLinkCode(supabase, raw, interaction.user.id, interaction.user.username);
+  const embed = buildLinkEmbed(result, interaction.user.username);
+  await interaction.editReply({ embeds: [embed] });
+}
+
+// ─── h!link ────────────────────────────────────────────────────────────────
+async function prefixLink(supabase, message, args) {
+  const raw = args[0];
+  if (!raw) {
+    return message.reply({
+      content: `Usage: \`${PREFIX}link <CODE>\`\nGet your code from the dashboard → **Discord Link**.`,
+    });
+  }
+  const result = await claimLinkCode(supabase, raw, message.author.id, message.author.username);
+  const embed = buildLinkEmbed(result, message.author.username);
+  return message.reply({ embeds: [embed] });
+}
+
+// ─── Shared linking logic ──────────────────────────────────────────────────
+async function claimLinkCode(supabase, rawCode, discordUserId, discordUsername) {
+  const code = normalizeCode(rawCode);
+
+  const { data: row, error: fetchErr } = await supabase
+    .from("discord_links")
+    .select("*")
+    .eq("verification_code", code)
+    .maybeSingle();
+
+  if (fetchErr) return { ok: false, reason: "db_error", detail: fetchErr.message };
+  if (!row) return { ok: false, reason: "not_found", code };
+  if (row.verified) return { ok: false, reason: "already_used", code };
+  if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) {
+    return { ok: false, reason: "expired", code };
+  }
+
+  const { error: updateErr } = await supabase
+    .from("discord_links")
+    .update({
+      verified: true,
+      verification_code: null,
+      expires_at: null,
+      discord_user_id: discordUserId,
+      discord_username: discordUsername,
+      linked_at: new Date().toISOString(),
+    })
+    .eq("id", row.id);
+
+  if (updateErr) return { ok: false, reason: "db_error", detail: updateErr.message };
+  return { ok: true, username: discordUsername };
+}
+
+function normalizeCode(raw) {
+  const cleaned = raw.replace(/[\s-]/g, "").toUpperCase();
+  return cleaned.startsWith("HIB") ? `HIB-${cleaned.slice(3)}` : `HIB-${cleaned}`;
+}
+
+function buildLinkEmbed(result, username) {
+  if (result.ok) {
+    return new EmbedBuilder()
+      .setColor(0x22c55e)
+      .setTitle("🔗 Account linked")
+      .setDescription(`**@${username}** is now connected to your Hibernation Portal dashboard.`)
+      .setFooter({ text: "Hibernation Portal · you're all set" });
+  }
+
+  const reasons = {
+    not_found: `Code \`${result.code}\` not found. Generate a fresh one from **Dashboard → Discord Link**.`,
+    already_used: `Code \`${result.code}\` has already been used. Generate a new one from the dashboard.`,
+    expired: `Code \`${result.code}\` expired (codes last 10 minutes). Generate a fresh one from the dashboard.`,
+    db_error: `Database error: ${result.detail || "unknown"}. Please try again.`,
+  };
+
+  return new EmbedBuilder()
+    .setColor(0xef4444)
+    .setTitle("❌ Linking failed")
+    .setDescription(reasons[result.reason] || "Something went wrong. Please try again.")
+    .setFooter({ text: "Hibernation Portal · dashboard.hibernationportal.app" });
+}
+
 // ─── h!help ────────────────────────────────────────────────────────────────
 async function prefixHelp(message) {
   const embed = new EmbedBuilder()
@@ -104,7 +194,10 @@ async function prefixHelp(message) {
     .addFields(
       {
         name: "Slash",
-        value: "`/ping` — latency, shard, cluster, language, version",
+        value: [
+          "`/ping` — latency, shard, cluster, language, version",
+          "`/link CODE` — link your Discord to the dashboard",
+        ].join("\n"),
       },
       {
         name: "General",
@@ -193,38 +286,6 @@ async function prefixHibernate(supabase, message, args) {
   }
 
   return message.reply({ content: `Usage: \`${PREFIX}hibernate <status|toggle|wake>\`` });
-}
-
-// ─── h!link ────────────────────────────────────────────────────────────────
-async function prefixLink(supabase, message, args) {
-  const code = args[0];
-  if (!code) return message.reply({ content: `Usage: \`${PREFIX}link <verification-code>\`` });
-
-  const cleaned = code.replace(/[\s-]/g, "").toUpperCase();
-  const suffix = cleaned.startsWith("HIB") ? cleaned.slice(3) : cleaned;
-  const normalized = `HIB-${suffix}`;
-
-  const { data: link } = await supabase
-    .from("discord_links")
-    .select("*")
-    .eq("verification_code", normalized)
-    .eq("verified", false)
-    .maybeSingle();
-
-  if (!link) {
-    return message.reply({
-      content: `❌ Code \`${normalized}\` not found. Generate a fresh one from **Dashboard → Linking** — codes are single-use.`,
-    });
-  }
-
-  await supabase.from("discord_links").update({
-    discord_user_id: message.author.id,
-    discord_username: message.author.username,
-    verified: true,
-    verification_code: null,
-  }).eq("id", link.id);
-
-  return message.reply({ content: `🔗 Linked **${message.author.username}** to your dashboard account.` });
 }
 
 function fmtUptime(s) {
