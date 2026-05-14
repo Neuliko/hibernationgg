@@ -8,6 +8,7 @@ import "dotenv/config";
 import { createServer } from "node:http";
 import { Client, GatewayIntentBits, Partials, Events } from "discord.js";
 import { createClient } from "@supabase/supabase-js";
+import ws from "ws";
 import { registerSlashCommands, handleSlash, handlePrefix, PREFIX } from "./commands.js";
 import { ensureServer, recordActivity, scanAndHibernate, wakeTarget } from "./hibernation.js";
 
@@ -46,6 +47,7 @@ healthServer.on("error", (e) => console.error("[health server]", e.message));
 // ─── Supabase ─────────────────────────────────────────────────────────────────
 export const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
+  realtime: { transport: ws },
 });
 
 // ─── Discord client ───────────────────────────────────────────────────────────
