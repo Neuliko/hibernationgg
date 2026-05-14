@@ -1,0 +1,18 @@
+services:
+  - type: worker
+    name: hibernation-bot
+    runtime: node
+    rootDir: bot
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: COMMAND_PREFIX
+        value: "h!"
+      - key: SCAN_INTERVAL_MS
+        value: "60000"
