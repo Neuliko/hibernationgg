@@ -8,6 +8,10 @@ services:
     envVars:
       - key: DISCORD_TOKEN
         sync: false
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DASHBOARD_URL
+        sync: false
       - key: SUPABASE_URL
         value: "https://hwdbgmmvkirbcehsbtkl.supabase.co"
       - key: SUPABASE_SERVICE_ROLE_KEY

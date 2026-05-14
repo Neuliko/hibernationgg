@@ -3,6 +3,9 @@ import {
   Routes,
   SlashCommandBuilder,
   EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   PermissionFlagsBits,
   version as djsVersion,
 } from "discord.js";
@@ -18,11 +21,21 @@ const BOT_VERSION = pkg.version || "1.0.0";
 const LAST_UPDATE = process.env.BOT_LAST_UPDATE || new Date().toISOString().slice(0, 10);
 const BRAND = 0x4f46e5;
 
+const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || "";
+const DASHBOARD_URL = (process.env.DASHBOARD_URL || "").replace(/\/$/, "");
+
+const BOT_INVITE_URL = DISCORD_CLIENT_ID
+  ? `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&scope=bot+applications.commands&permissions=397284557824`
+  : "https://discord.com/oauth2/authorize";
+
 // ─── Slash commands ────────────────────────────────────────────────────────
 const slash = [
   new SlashCommandBuilder()
     .setName("ping")
     .setDescription("Bot latency, shard, cluster, language, version"),
+  new SlashCommandBuilder()
+    .setName("link")
+    .setDescription("Link your Discord account to the Hibernation Portal dashboard"),
 ].map((c) => c.toJSON());
 
 export async function registerSlashCommands(client) {
@@ -43,6 +56,9 @@ export async function registerSlashCommands(client) {
 
 export async function handleSlash(supabase, client, interaction) {
   if (interaction.commandName === "ping") return slashPing(client, interaction);
+  if (interaction.commandName === "link") return handleLink(supabase, interaction.guild, interaction.user, {
+    reply: (opts) => interaction.reply({ ...opts, ephemeral: true }),
+  });
 }
 
 // ─── Prefix dispatcher ─────────────────────────────────────────────────────
@@ -56,9 +72,111 @@ export async function handlePrefix(supabase, client, message) {
     case "help":      await prefixHelp(message); return true;
     case "ping":      await prefixPing(client, message); return true;
     case "hibernate": await prefixHibernate(supabase, message, args); return true;
-    case "link":      await prefixLink(supabase, message, args); return true;
-    default:          return false;
+    case "link":      await handleLink(supabase, message.guild, message.author, {
+      reply: (opts) => message.reply(opts),
+    }); return true;
+    default: return false;
   }
+}
+
+// ─── Shared link flow ──────────────────────────────────────────────────────
+async function handleLink(supabase, guild, user, ctx) {
+  if (!guild) {
+    return ctx.reply({ content: "❌ This command can only be used inside a server." });
+  }
+
+  const isOwner = guild.ownerId === user.id;
+
+  if (!isOwner) {
+    const embed = new EmbedBuilder()
+      .setColor(0xef4444)
+      .setTitle("❌ Server owner only")
+      .setDescription(
+        "Only the **server owner** can link their account to the Hibernation Portal dashboard.\n\n" +
+        "If you want to use Hibernation Portal on your own server, add the bot below."
+      )
+      .setFooter({ text: "Hibernation Portal · idle, beautifully" });
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel("Add Bot to Your Server")
+        .setStyle(ButtonStyle.Link)
+        .setURL(BOT_INVITE_URL)
+        .setEmoji("🤖")
+    );
+
+    return ctx.reply({ embeds: [embed], components: [row] });
+  }
+
+  // User is the guild owner — generate a link token
+  if (!DASHBOARD_URL) {
+    return ctx.reply({ content: "❌ Bot is missing `DASHBOARD_URL` configuration. Contact the bot owner." });
+  }
+
+  const token = await createLinkToken(supabase, user.id, user.username);
+  if (!token) {
+    return ctx.reply({ content: "❌ Failed to generate a link token. Please try again in a moment." });
+  }
+
+  const linkUrl = `${DASHBOARD_URL}/dashboard/linking?token=${token}`;
+
+  const embed = new EmbedBuilder()
+    .setColor(BRAND)
+    .setTitle("🔗 Link your account")
+    .setDescription(
+      "Click the button below to open the Hibernation Portal dashboard and link your Discord identity.\n\n" +
+      "The link is **one-time use** and expires in **10 minutes**."
+    )
+    .addFields(
+      { name: "👤 Discord", value: `@${user.username}`, inline: true },
+      { name: "🌐 Server", value: guild.name, inline: true }
+    )
+    .setFooter({ text: "Hibernation Portal · expires in 10 minutes" })
+    .setTimestamp();
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setLabel("Authorize with Hibernation Portal")
+      .setStyle(ButtonStyle.Link)
+      .setURL(linkUrl)
+      .setEmoji("🌙")
+  );
+
+  return ctx.reply({ embeds: [embed], components: [row] });
+}
+
+// ─── Token generation ──────────────────────────────────────────────────────
+function genToken() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let t = "HIB-";
+  for (let i = 0; i < 8; i++) t += chars[Math.floor(Math.random() * chars.length)];
+  return t;
+}
+
+async function createLinkToken(supabase, discordUserId, discordUsername) {
+  const token = genToken();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+  const { error } = await supabase
+    .from("discord_links")
+    .upsert(
+      {
+        discord_user_id: discordUserId,
+        discord_username: discordUsername,
+        verification_code: token,
+        expires_at: expiresAt,
+        verified: false,
+        clerk_user_id: null,
+        linked_at: null,
+      },
+      { onConflict: "discord_user_id" }
+    );
+
+  if (error) {
+    console.error("createLinkToken:", error.message);
+    return null;
+  }
+  return token;
 }
 
 // ─── /ping ─────────────────────────────────────────────────────────────────
@@ -104,13 +222,17 @@ async function prefixHelp(message) {
     .addFields(
       {
         name: "Slash",
-        value: "`/ping` — latency, shard, cluster, language, version",
+        value: [
+          "`/ping` — latency, shard, cluster, language, version",
+          "`/link` — link your Discord account to the dashboard",
+        ].join("\n"),
       },
       {
         name: "General",
         value: [
           `\`${PREFIX}help\` — show this menu`,
           `\`${PREFIX}ping\` — quick latency check`,
+          `\`${PREFIX}link\` — link your account to the dashboard`,
         ].join("\n"),
       },
       {
@@ -120,10 +242,6 @@ async function prefixHelp(message) {
           `\`${PREFIX}hibernate toggle on|off\` — master switch *(Manage Guild)*`,
           `\`${PREFIX}hibernate wake\` — wake every target *(Manage Guild)*`,
         ].join("\n"),
-      },
-      {
-        name: "Account",
-        value: `\`${PREFIX}link CODE\` — link your Discord to the dashboard`,
       }
     )
     .setFooter({ text: "Hibernation Portal · idle, beautifully" });
@@ -193,38 +311,6 @@ async function prefixHibernate(supabase, message, args) {
   }
 
   return message.reply({ content: `Usage: \`${PREFIX}hibernate <status|toggle|wake>\`` });
-}
-
-// ─── h!link ────────────────────────────────────────────────────────────────
-async function prefixLink(supabase, message, args) {
-  const code = args[0];
-  if (!code) return message.reply({ content: `Usage: \`${PREFIX}link <verification-code>\`` });
-
-  const cleaned = code.replace(/[\s-]/g, "").toUpperCase();
-  const suffix = cleaned.startsWith("HIB") ? cleaned.slice(3) : cleaned;
-  const normalized = `HIB-${suffix}`;
-
-  const { data: link } = await supabase
-    .from("discord_links")
-    .select("*")
-    .eq("verification_code", normalized)
-    .eq("verified", false)
-    .maybeSingle();
-
-  if (!link) {
-    return message.reply({
-      content: `❌ Code \`${normalized}\` not found. Generate a fresh one from **Dashboard → Linking** — codes are single-use.`,
-    });
-  }
-
-  await supabase.from("discord_links").update({
-    discord_user_id: message.author.id,
-    discord_username: message.author.username,
-    verified: true,
-    verification_code: null,
-  }).eq("id", link.id);
-
-  return message.reply({ content: `🔗 Linked **${message.author.username}** to your dashboard account.` });
 }
 
 function fmtUptime(s) {
