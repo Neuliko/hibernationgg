@@ -6,11 +6,11 @@ services:
     buildCommand: npm install
     startCommand: npm start
     envVars:
-      - key: DISCORD_TOKEN
+      - key: MTQ2ODc1NzA2MDExMTA0NDY5Mg.GhzXE7.M3ST2pwpstFfheLI52eud8zbooD2yGAVPX4oM4
         sync: false
-      - key: SUPABASE_URL
+      - key: https://rnjwmrdrjzhuwpbbcmdv.supabase.co
         sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
+      - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJuandtcmRyanpodXdwYmJjbWR2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODIxOTEwNywiZXhwIjoyMDkzNzk1MTA3fQ.fVz8wOst8IwOYWU-EGRkffp_GAXPmjq4ussCHCXQ9x8
         sync: false
       - key: COMMAND_PREFIX
         value: "h!"
