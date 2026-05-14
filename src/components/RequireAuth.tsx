@@ -1,5 +1,5 @@
 import { isClerkConfigured } from "@/lib/auth-provider";
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { ReactNode } from "react";
 import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 
@@ -29,13 +29,19 @@ export function ClerkSetupBanner() {
   );
 }
 
+function RedirectToSignInWithReturn() {
+  const location = useLocation();
+  const returnUrl = location.pathname + location.search;
+  return <RedirectToSignIn redirectUrl={returnUrl} />;
+}
+
 export function RequireAuth({ children }: { children: ReactNode }) {
   if (!isClerkConfigured) return <ClerkSetupBanner />;
   return (
     <>
       <SignedIn>{children}</SignedIn>
       <SignedOut>
-        <RedirectToSignIn />
+        <RedirectToSignInWithReturn />
       </SignedOut>
     </>
   );
