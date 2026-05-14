@@ -31,7 +31,7 @@ export function ClerkSetupBanner() {
 
 function RedirectToSignInWithReturn() {
   const location = useLocation();
-  const returnUrl = location.pathname + location.search;
+  const returnUrl = location.pathname + (location.searchStr ?? "");
   return <RedirectToSignIn redirectUrl={returnUrl} />;
 }
 

@@ -12,16 +12,36 @@ export const claimBotToken = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data }) => {
-    const { data: row, error: fetchErr } = await supabaseAdmin
-      .from("discord_links")
-      .select("*")
-      .eq("verification_code", data.token)
-      .maybeSingle();
+    console.log("[claimBotToken] token prefix:", data.token?.slice(0, 6), "user:", data.clerkUserId?.slice(0, 8));
 
-    if (fetchErr) throw new Error(fetchErr.message);
-    if (!row) return { ok: false, reason: "not_found" } as const;
-    if (row.verified) return { ok: false, reason: "already_used" } as const;
-    if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) {
+    let row: Record<string, unknown> | null = null;
+    try {
+      const { data: found, error: fetchErr } = await supabaseAdmin
+        .from("discord_links")
+        .select("*")
+        .eq("verification_code", data.token)
+        .maybeSingle();
+
+      if (fetchErr) {
+        console.error("[claimBotToken] fetch error:", fetchErr.message, fetchErr.code);
+        throw new Error(fetchErr.message);
+      }
+      row = found;
+    } catch (e: any) {
+      console.error("[claimBotToken] exception during fetch:", e?.message ?? e);
+      throw e;
+    }
+
+    if (!row) {
+      console.log("[claimBotToken] token not found in DB");
+      return { ok: false, reason: "not_found" } as const;
+    }
+    if (row.verified) {
+      console.log("[claimBotToken] token already used");
+      return { ok: false, reason: "already_used" } as const;
+    }
+    if (row.expires_at && new Date(row.expires_at as string).getTime() < Date.now()) {
+      console.log("[claimBotToken] token expired at", row.expires_at);
       return { ok: false, reason: "expired" } as const;
     }
 
@@ -34,10 +54,15 @@ export const claimBotToken = createServerFn({ method: "POST" })
         expires_at: null,
         linked_at: new Date().toISOString(),
       })
-      .eq("id", row.id);
+      .eq("id", row.id as string);
 
-    if (updateErr) throw new Error(updateErr.message);
-    return { ok: true, discordUsername: row.discord_username } as const;
+    if (updateErr) {
+      console.error("[claimBotToken] update error:", updateErr.message, updateErr.code);
+      throw new Error(updateErr.message);
+    }
+
+    console.log("[claimBotToken] success, discord_username:", row.discord_username);
+    return { ok: true, discordUsername: row.discord_username as string | null } as const;
   });
 
 /**

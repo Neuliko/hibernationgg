@@ -14,7 +14,7 @@ export const Route = createFileRoute("/dashboard/linking")({
 
 type ClaimResult =
   | { ok: true; discordUsername: string | null }
-  | { ok: false; reason: "not_found" | "already_used" | "expired" | "error" };
+  | { ok: false; reason: "not_found" | "already_used" | "expired" | "error"; detail?: string };
 
 function Linking() {
   const { user } = useUser();
@@ -47,7 +47,7 @@ function Linking() {
           setLink(r.link);
         }
       })
-      .catch((e) => setClaimed({ ok: false, reason: "error" }))
+      .catch((e) => setClaimed({ ok: false, reason: "error", detail: e?.message ?? String(e) }))
       .finally(() => setClaiming(false));
   }, [token, user?.id]);
 
@@ -150,6 +150,9 @@ function TokenClaimPanel({
       <Panel title="❌ Linking failed">
         <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6">
           <p className="text-sm text-muted-foreground">{messages[result.reason]}</p>
+          {result.reason === "error" && result.detail && (
+            <p className="text-xs font-mono text-destructive/70 mt-2 break-all">{result.detail}</p>
+          )}
         </div>
         <div className="mt-4">
           <InstructionsPanel />
