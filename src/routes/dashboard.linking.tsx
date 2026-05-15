@@ -1,55 +1,50 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, Panel } from "@/components/dashboard/kit";
 import { useEffect, useRef, useState } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useServerFn } from "@tanstack/react-start";
-import { claimBotToken, getMyLink, unlinkDiscord } from "@/lib/linking.functions";
+import { getMyLink, unlinkDiscord } from "@/lib/linking.functions";
 
 export const Route = createFileRoute("/dashboard/linking")({
   validateSearch: (search: Record<string, unknown>) => ({
-    token: typeof search.token === "string" ? search.token : undefined,
+    discord_linked: search.discord_linked === "1" ? true : undefined,
+    discord_error: typeof search.discord_error === "string" ? search.discord_error : undefined,
   }),
   component: Linking,
 });
 
-type ClaimResult =
-  | { ok: true; discordUsername: string | null }
-  | { ok: false; reason: "not_found" | "already_used" | "expired" | "error"; detail?: string };
+function buildDiscordOAuthUrl(clerkUserId: string): string {
+  const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID;
+  if (!clientId) return "#";
+  const redirectUri = `${window.location.origin}/auth/discord/callback`;
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    scope: "identify",
+  });
+  return `https://discord.com/oauth2/authorize?${params.toString()}`;
+}
 
 function Linking() {
   const { user } = useUser();
-  const { token } = Route.useSearch();
-  const claimFn = useServerFn(claimBotToken);
+  const { discord_linked, discord_error } = Route.useSearch();
   const getFn = useServerFn(getMyLink);
   const unlinkFn = useServerFn(unlinkDiscord);
 
   const [link, setLink] = useState<any>(null);
-  const [claiming, setClaiming] = useState(false);
-  const [claimed, setClaimed] = useState<ClaimResult | null>(null);
+  const [loading, setLoading] = useState(true);
   const [unlinking, setUnlinking] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const didClaim = useRef(false);
+  const didFetch = useRef(false);
 
   useEffect(() => {
-    if (!user?.id) return;
-    getFn({ data: { clerkUserId: user.id } }).then((r) => setLink(r.link));
+    if (!user?.id || didFetch.current) return;
+    didFetch.current = true;
+    getFn({ data: { clerkUserId: user.id } })
+      .then((r) => setLink(r.link))
+      .finally(() => setLoading(false));
   }, [user?.id]);
-
-  useEffect(() => {
-    if (!token || !user?.id || didClaim.current) return;
-    didClaim.current = true;
-    setClaiming(true);
-    claimFn({ data: { token, clerkUserId: user.id } })
-      .then(async (res) => {
-        setClaimed(res);
-        if (res.ok) {
-          const r = await getFn({ data: { clerkUserId: user.id } });
-          setLink(r.link);
-        }
-      })
-      .catch((e) => setClaimed({ ok: false, reason: "error", detail: e?.message ?? String(e) }))
-      .finally(() => setClaiming(false));
-  }, [token, user?.id]);
 
   async function unlink() {
     if (!user?.id) return;
@@ -58,8 +53,6 @@ function Linking() {
     try {
       await unlinkFn({ data: { clerkUserId: user.id } });
       setLink(null);
-      setClaimed(null);
-      didClaim.current = false;
     } catch (e: any) {
       setErr(e?.message || "Failed to unlink");
     } finally {
@@ -67,188 +60,111 @@ function Linking() {
     }
   }
 
+  const clientIdMissing = !import.meta.env.VITE_DISCORD_CLIENT_ID;
+  const isLinked = link?.verified;
+
   return (
     <div className="p-6 md:p-10 max-w-3xl">
       <PageHeader
         eyebrow="/ account linking"
-        title="Connect your Discord identity"
-        subtitle="Link your dashboard account to your Discord user so the bot recognises you across servers."
+        title="Connect your Discord"
+        subtitle="Link your dashboard account to your Discord identity so your servers appear here automatically."
       />
 
-      {token ? (
-        <TokenClaimPanel claiming={claiming} result={claimed} link={link} onUnlink={unlink} unlinking={unlinking} />
-      ) : link?.verified ? (
-        <LinkedPanel link={link} onUnlink={unlink} unlinking={unlinking} err={err} />
-      ) : (
-        <InstructionsPanel />
+      {discord_error && (
+        <div className="mb-6 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-muted-foreground">
+          <span className="font-medium text-destructive">Discord authorization failed.</span>{" "}
+          {discord_error === "access_denied"
+            ? "You cancelled the authorization. Try again when you're ready."
+            : discord_error === "exchange_failed"
+            ? "Could not exchange the authorization code. Make sure the OAuth redirect URI is registered in the Discord Developer Portal."
+            : discord_error === "profile_failed"
+            ? "Connected to Discord but couldn't fetch your profile. Please try again."
+            : "Something went wrong. Please try again."}
+        </div>
       )}
-    </div>
-  );
-}
 
-function TokenClaimPanel({
-  claiming,
-  result,
-  link,
-  onUnlink,
-  unlinking,
-}: {
-  claiming: boolean;
-  result: ClaimResult | null;
-  link: any;
-  onUnlink: () => void;
-  unlinking: boolean;
-}) {
-  if (claiming) {
-    return (
-      <Panel title="🔗 Linking account…">
-        <div className="py-10 text-center">
-          <div className="text-4xl mb-4 animate-pulse">🌙</div>
-          <p className="text-muted-foreground text-sm">Verifying your Discord token…</p>
-        </div>
-      </Panel>
-    );
-  }
-
-  if (result?.ok) {
-    return (
-      <Panel title="✅ Discord linked">
-        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6 flex items-center justify-between gap-4">
-          <div>
-            <div className="text-emerald-600 dark:text-emerald-400 font-semibold text-lg">
-              @{link?.discord_username ?? result.discordUsername}
-            </div>
-            <div className="text-xs font-mono text-muted-foreground mt-1">
-              Discord ID: {link?.discord_user_id}
-            </div>
-            {link?.linked_at && (
-              <div className="text-xs text-muted-foreground mt-0.5">
-                Linked {new Date(link.linked_at).toLocaleString()}
+      {loading ? (
+        <Panel title="Discord account">
+          <div className="py-10 text-center text-sm text-muted-foreground">Loading…</div>
+        </Panel>
+      ) : isLinked ? (
+        <Panel title="✅ Discord connected">
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6 flex items-center justify-between gap-4">
+            <div>
+              <div className="text-emerald-600 dark:text-emerald-400 font-semibold text-lg">
+                @{link.discord_username}
               </div>
-            )}
+              <div className="text-xs font-mono text-muted-foreground mt-1">
+                Discord ID: {link.discord_user_id}
+              </div>
+              {link.linked_at && (
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Linked {new Date(link.linked_at).toLocaleString()}
+                </div>
+              )}
+              <div className="text-xs text-muted-foreground mt-2">
+                Your servers will now appear on the dashboard overview.
+              </div>
+            </div>
+            <button
+              onClick={unlink}
+              disabled={unlinking}
+              className="shrink-0 rounded-full border border-destructive/40 px-4 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 transition disabled:opacity-50"
+            >
+              {unlinking ? "Unlinking…" : "Unlink"}
+            </button>
           </div>
-          <button
-            onClick={onUnlink}
-            disabled={unlinking}
-            className="shrink-0 rounded-full border border-destructive/40 px-4 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 transition disabled:opacity-50"
-          >
-            {unlinking ? "Unlinking…" : "Unlink"}
-          </button>
-        </div>
-      </Panel>
-    );
-  }
+          {err && <p className="text-xs text-destructive mt-3">{err}</p>}
+        </Panel>
+      ) : (
+        <Panel title="🔗 Connect with Discord">
+          <p className="text-sm text-muted-foreground mb-6">
+            Click the button below to authorize Hibernation Portal with your Discord account.
+            Once connected, any server where you are the owner and the bot is installed will
+            appear in your dashboard automatically.
+          </p>
 
-  if (result && !result.ok) {
-    const messages: Record<string, string> = {
-      not_found: "This link token wasn't found. It may be invalid — run `/link` or `h!link` in Discord again to get a new one.",
-      already_used: "This link token has already been used. If you need to re-link, run `/link` in Discord to get a fresh one.",
-      expired: "This link token expired (tokens last 10 minutes). Run `/link` or `h!link` in Discord to get a new one.",
-      error: "Something went wrong while claiming your token. Please try again.",
-    };
-    return (
-      <Panel title="❌ Linking failed">
-        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6">
-          <p className="text-sm text-muted-foreground">{messages[result.reason]}</p>
-          {result.reason === "error" && result.detail && (
-            <p className="text-xs font-mono text-destructive/70 mt-2 break-all">{result.detail}</p>
-          )}
-        </div>
-        <div className="mt-4">
-          <InstructionsPanel />
-        </div>
-      </Panel>
-    );
-  }
-
-  return null;
-}
-
-function LinkedPanel({
-  link,
-  onUnlink,
-  unlinking,
-  err,
-}: {
-  link: any;
-  onUnlink: () => void;
-  unlinking: boolean;
-  err: string | null;
-}) {
-  return (
-    <Panel title="✅ Discord linked">
-      <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6 flex items-center justify-between gap-4">
-        <div>
-          <div className="text-emerald-600 dark:text-emerald-400 font-semibold text-lg">
-            @{link.discord_username}
-          </div>
-          <div className="text-xs font-mono text-muted-foreground mt-1">Discord ID: {link.discord_user_id}</div>
-          {link.linked_at && (
-            <div className="text-xs text-muted-foreground mt-0.5">
-              Linked {new Date(link.linked_at).toLocaleString()}
+          {discord_linked && !isLinked && (
+            <div className="mb-4 rounded-xl border border-brand/30 bg-brand/5 p-3 text-sm text-brand">
+              Authorization received — fetching your account…
             </div>
           )}
-        </div>
-        <button
-          onClick={onUnlink}
-          disabled={unlinking}
-          className="shrink-0 rounded-full border border-destructive/40 px-4 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 transition disabled:opacity-50"
-        >
-          {unlinking ? "Unlinking…" : "Unlink"}
-        </button>
-      </div>
-      {err && <p className="text-xs text-destructive mt-3">{err}</p>}
-    </Panel>
-  );
-}
 
-function InstructionsPanel() {
-  return (
-    <Panel title="🔗 Link via Discord">
-      <p className="text-sm text-muted-foreground mb-6">
-        Linking is initiated from Discord. Run the command in any server where the bot is active — you must be the <strong>server owner</strong>.
-      </p>
-      <div className="space-y-4">
-        <Step n={1} label="Open Discord" body="Go to a server where Hibernation Portal bot is installed." />
-        <Step n={2} label="Run the command" body={
-          <span>
-            Type{" "}
-            <code className="px-1.5 py-0.5 rounded bg-secondary font-mono text-xs">/link</code>
-            {" "}or{" "}
-            <code className="px-1.5 py-0.5 rounded bg-secondary font-mono text-xs">h!link</code>
-            {" "}in any channel.
-          </span>
-        } />
-        <Step n={3} label="Click the button" body="The bot will send you a private button. Click it — it brings you back here and links automatically." />
-        <Step n={4} label="Done" body="This page will show your linked Discord identity." />
-      </div>
-      <div className="mt-6 rounded-xl border border-border bg-secondary/40 p-4 text-sm text-muted-foreground">
-        <span className="font-medium text-foreground">Don't have the bot yet?</span>{" "}
-        Contact the server owner to install it, or{" "}
-        <a
-          href={`https://discord.com/oauth2/authorize?client_id=${import.meta.env.VITE_DISCORD_CLIENT_ID || "YOUR_CLIENT_ID"}&scope=bot+applications.commands&permissions=397284557824`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-brand underline underline-offset-2 hover:opacity-80"
-        >
-          add it to your own server
-        </a>
-        .
-      </div>
-    </Panel>
-  );
-}
+          {clientIdMissing ? (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-muted-foreground">
+              <span className="font-medium text-amber-600">Not configured.</span>{" "}
+              The <code className="font-mono bg-secondary px-1 py-0.5 rounded text-xs">VITE_DISCORD_CLIENT_ID</code> environment
+              variable is not set. Add it to enable Discord OAuth.
+            </div>
+          ) : (
+            user?.id && (
+              <a
+                href={buildDiscordOAuthUrl(user.id)}
+                className="inline-flex items-center gap-3 rounded-full bg-[#5865F2] px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-[#4752C4] transition"
+              >
+                <svg width="20" height="20" viewBox="0 0 127.14 96.36" fill="white">
+                  <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z" />
+                </svg>
+                Connect with Discord
+              </a>
+            )
+          )}
 
-function Step({ n, label, body }: { n: number; label: string; body: React.ReactNode }) {
-  return (
-    <div className="flex gap-4">
-      <div className="size-7 rounded-full bg-brand/10 border border-brand/20 text-brand text-xs font-bold flex items-center justify-center shrink-0">
-        {n}
-      </div>
-      <div>
-        <div className="text-sm font-medium text-foreground">{label}</div>
-        <div className="text-xs text-muted-foreground mt-0.5">{body}</div>
-      </div>
+          <div className="mt-6 rounded-xl border border-border bg-secondary/40 p-4 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Need the bot in your server first?</span>{" "}
+            <a
+              href={`https://discord.com/oauth2/authorize?client_id=${import.meta.env.VITE_DISCORD_CLIENT_ID || ""}&scope=bot+applications.commands&permissions=397284557824`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand underline underline-offset-2 hover:opacity-80"
+            >
+              Add Hibernation Portal to your server
+            </a>
+            , then come back here to connect.
+          </div>
+        </Panel>
+      )}
     </div>
   );
 }

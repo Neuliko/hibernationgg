@@ -80,6 +80,73 @@ export const getMyLink = createServerFn({ method: "POST" })
   });
 
 /**
+ * Exchange a Discord OAuth2 code for a user profile and save the link.
+ */
+export const exchangeDiscordCode = createServerFn({ method: "POST" })
+  .inputValidator((input: { code: string; clerkUserId: string; redirectUri: string }) => input)
+  .handler(async ({ data }) => {
+    const clientId = process.env.DISCORD_CLIENT_ID;
+    const clientSecret = process.env.DISCORD_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
+      throw new Error("Discord OAuth is not configured on the server (missing DISCORD_CLIENT_ID or DISCORD_CLIENT_SECRET).");
+    }
+
+    const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: "authorization_code",
+        code: data.code,
+        redirect_uri: data.redirectUri,
+      }).toString(),
+    });
+
+    if (!tokenRes.ok) {
+      const body = await tokenRes.text();
+      console.error("[exchangeDiscordCode] token exchange failed:", body);
+      return { ok: false as const, reason: "exchange_failed" as const };
+    }
+
+    const tokenData = await tokenRes.json();
+
+    const userRes = await fetch("https://discord.com/api/users/@me", {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+
+    if (!userRes.ok) {
+      console.error("[exchangeDiscordCode] profile fetch failed:", userRes.status);
+      return { ok: false as const, reason: "profile_failed" as const };
+    }
+
+    const discordUser = await userRes.json();
+
+    // Remove any existing links for this Clerk user or this Discord account
+    await supabaseAdmin
+      .from("discord_links")
+      .delete()
+      .or(`clerk_user_id.eq.${data.clerkUserId},discord_user_id.eq.${discordUser.id}`);
+
+    const { error } = await supabaseAdmin.from("discord_links").insert({
+      discord_user_id: discordUser.id,
+      discord_username: discordUser.username,
+      clerk_user_id: data.clerkUserId,
+      verified: true,
+      linked_at: new Date().toISOString(),
+    });
+
+    if (error) {
+      console.error("[exchangeDiscordCode] insert error:", error.message);
+      throw new Error(error.message);
+    }
+
+    console.log("[exchangeDiscordCode] linked discord_user_id:", discordUser.id, "username:", discordUser.username);
+    return { ok: true as const, discordUsername: discordUser.username as string };
+  });
+
+/**
  * Fetch Discord servers owned by a Clerk user (via their linked discord_user_id).
  */
 export const getMyServers = createServerFn({ method: "POST" })

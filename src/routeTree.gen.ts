@@ -21,6 +21,7 @@ import { Route as DashboardLogsRouteImport } from './routes/dashboard.logs'
 import { Route as DashboardLinkingRouteImport } from './routes/dashboard.linking'
 import { Route as DashboardControlRouteImport } from './routes/dashboard.control'
 import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard.analytics'
+import { Route as AuthDiscordCallbackRouteImport } from './routes/auth.discord.callback'
 
 const SsoCallbackRoute = SsoCallbackRouteImport.update({
   id: '/sso-callback',
@@ -82,6 +83,11 @@ const DashboardAnalyticsRoute = DashboardAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => DashboardRoute,
 } as any)
+const AuthDiscordCallbackRoute = AuthDiscordCallbackRouteImport.update({
+  id: '/auth/discord/callback',
+  path: '/auth/discord/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/linking': typeof DashboardLinkingRoute
   '/dashboard/logs': typeof DashboardLogsRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/auth/discord/callback': typeof AuthDiscordCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/dashboard/linking': typeof DashboardLinkingRoute
   '/dashboard/logs': typeof DashboardLogsRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/auth/discord/callback': typeof AuthDiscordCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/dashboard/linking': typeof DashboardLinkingRoute
   '/dashboard/logs': typeof DashboardLogsRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/auth/discord/callback': typeof AuthDiscordCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/dashboard/linking'
     | '/dashboard/logs'
     | '/dashboard/'
+    | '/auth/discord/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | '/dashboard/linking'
     | '/dashboard/logs'
     | '/dashboard'
+    | '/auth/discord/callback'
   id:
     | '__root__'
     | '/'
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '/dashboard/linking'
     | '/dashboard/logs'
     | '/dashboard/'
+    | '/auth/discord/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -177,6 +189,7 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   SsoCallbackRoute: typeof SsoCallbackRoute
+  AuthDiscordCallbackRoute: typeof AuthDiscordCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -265,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardAnalyticsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/auth/discord/callback': {
+      id: '/auth/discord/callback'
+      path: '/auth/discord/callback'
+      fullPath: '/auth/discord/callback'
+      preLoaderRoute: typeof AuthDiscordCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -296,6 +316,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   SsoCallbackRoute: SsoCallbackRoute,
+  AuthDiscordCallbackRoute: AuthDiscordCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

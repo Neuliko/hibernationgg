@@ -1,0 +1,135 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "Space Grotesk",
+      "role": "body"
+    },
+    {
+      "family": "JetBrains Mono",
+      "role": "monospace"
+    }
+  ],
+  "colors": {
+    "primary": "#D2E6FF",
+    "secondary": "#071027",
+    "accent": "#386BFA",
+    "background": "#F9FCFF",
+    "textPrimary": "#596475",
+    "link": "#596475"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Space Grotesk",
+      "heading": "Space Grotesk"
+    },
+    "fontStacks": {
+      "heading": [
+        "Space Grotesk",
+        "system-ui",
+        "sans-serif"
+      ],
+      "body": [
+        "Space Grotesk",
+        "system-ui",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "Space Grotesk",
+        "system-ui",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "60px",
+      "h2": "48px",
+      "body": "18px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 8,
+    "borderRadius": "0px"
+  },
+  "components": {
+    "buttonPrimary": {
+      "background": "#386BFA",
+      "textColor": "#F9FCFF",
+      "borderRadius": "33554400px",
+      "borderRadiusCorners": {
+        "topLeft": "33554400px",
+        "topRight": "33554400px",
+        "bottomRight": "33554400px",
+        "bottomLeft": "33554400px"
+      },
+      "shadow": "oklch(0.58 0.22 265 / 0.45) 0px 10px 30px -10px"
+    },
+    "buttonSecondary": {
+      "background": "#FFFFFF",
+      "textColor": "#386BFA",
+      "borderRadius": "33554400px",
+      "borderRadiusCorners": {
+        "topLeft": "33554400px",
+        "topRight": "33554400px",
+        "bottomRight": "33554400px",
+        "bottomLeft": "33554400px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "logo": "https://hibernationgg.lovable.app/assets/hero-banner-CFGcPz4o.png",
+    "favicon": null,
+    "ogImage": "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9e4653fa-63ff-4707-a6b6-0530844c45c5/id-preview-c8fb7a79--98fd7681-eb06-4292-8feb-fe92ff010bbd.lovable.app-1778200191842.png",
+    "logoHref": "File saved at: attached_assets/logoHref.html",
+    "logoAlt": "Hibernation Portal logo"
+  },
+  "__llm_logo_reasoning": {
+    "selectedIndex": 0,
+    "reasoning": "Selected #0 because it is visible, located in the header, and the alt text matches the brand 'Hibernation Portal'.",
+    "confidence": 0.9,
+    "source": "llm"
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": 0,
+      "text": "Get started",
+      "reasoning": "Button #0 'Get started' uses a vibrant brand color (#386BFA) and has action-oriented text, making it the primary CTA."
+    },
+    "secondary": {
+      "index": 3,
+      "text": "Launch dashboard →",
+      "reasoning": "Button #3 'Launch dashboard →' has a different background color (#FFFFFF) and serves as a secondary action with a less prominent color."
+    },
+    "confidence": 0.95
+  },
+  "personality": {
+    "tone": "modern",
+    "energy": "medium",
+    "targetAudience": "tech-savvy users, Discord community managers"
+  },
+  "designSystem": {
+    "framework": "tailwind",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 0.95,
+    "colors": 0.9,
+    "overall": 0.925
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": true,
+      "llmSucceeded": true,
+      "finalSource": "llm",
+      "rawLogoSelection": {
+        "selectedLogoIndex": 0,
+        "selectedLogoReasoning": "Selected #0 because it is visible, located in the header, and the alt text matches the brand 'Hibernation Portal'.",
+        "confidence": 0.9
+      }
+    },
+    "buttonClassification": {
+      "llmCalled": true,
+      "llmSucceeded": true
+    }
+  }
+}
