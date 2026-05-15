@@ -6,7 +6,7 @@
 //  - uncaughtException exits cleanly so the platform can restart
 import "dotenv/config";
 import { createServer } from "node:http";
-import { Client, GatewayIntentBits, Partials, Events } from "discord.js";
+import { Client, GatewayIntentBits, Partials, Events, ActivityType } from "discord.js";
 import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
 import { registerSlashCommands, handleSlash, handlePrefix, PREFIX } from "./commands.js";
@@ -78,9 +78,18 @@ setInterval(() => {
 
 let scanTimer = null;
 
+function setPresence(c) {
+  const count = c.guilds.cache.size;
+  c.user.setPresence({
+    status: "online",
+    activities: [{ name: `${count} server${count !== 1 ? "s" : ""}`, type: ActivityType.Watching }],
+  });
+}
+
 client.once(Events.ClientReady, safe("ready", async (c) => {
   botReady = true;
   console.log(`🌙 Hibernation Portal online · ${c.user.tag} · guilds=${c.guilds.cache.size} · prefix="${PREFIX}"`);
+  setPresence(c);
 
   for (const guild of c.guilds.cache.values()) {
     await ensureServer(supabase, guild).catch((e) =>
@@ -103,6 +112,7 @@ client.once(Events.ClientReady, safe("ready", async (c) => {
 
 client.on(Events.GuildCreate, safe("guildCreate", async (guild) => {
   await ensureServer(supabase, guild);
+  setPresence(client);
 }));
 
 client.on(Events.MessageCreate, safe("messageCreate", async (msg) => {

@@ -1,10 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader, StatCard, Panel, StateBadge } from "@/components/dashboard/kit";
 import { demoStats } from "@/lib/demo-data";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useUser } from "@clerk/clerk-react";
+import { getMyServers } from "@/lib/linking.functions";
 
 export const Route = createFileRoute("/dashboard/")({
   component: Overview,
@@ -28,10 +30,30 @@ type Event = {
   target_id: string | null;
 };
 
+type Server = {
+  id: string;
+  guild_id: string;
+  name: string;
+  hibernation_enabled: boolean | null;
+};
+
 function Overview() {
+  const { user } = useUser();
   const [targets, setTargets] = useState<Target[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [live, setLive] = useState(false);
+  const [servers, setServers] = useState<Server[]>([]);
+  const [serversLoaded, setServersLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    getMyServers({ data: { clerkUserId: user.id } })
+      .then(({ servers: s }) => {
+        setServers(s as Server[]);
+        setServersLoaded(true);
+      })
+      .catch(() => setServersLoaded(true));
+  }, [user?.id]);
 
   useEffect(() => {
     let mounted = true;
@@ -95,6 +117,52 @@ function Overview() {
         <StatCard label="Awake" value={hasData ? counts.awake : demoStats.awake} hint="active recently" emoji="☀️" tone="accent" />
         <StatCard label="Members asleep" value={hasData ? targets.filter((t) => t.kind === "user" && t.state !== "awake").length : demoStats.membersAsleep} emoji="💤" />
         <StatCard label="Channels asleep" value={hasData ? targets.filter((t) => t.kind === "channel" && t.state !== "awake").length : 0} emoji="📺" tone="frost" />
+      </div>
+
+      <div className="mb-4">
+        <Panel
+          title="🌐 Your servers"
+          action={
+            !serversLoaded ? null : servers.length === 0 ? (
+              <Link
+                to="/dashboard/linking"
+                className="text-xs font-mono text-brand hover:underline"
+              >
+                Link Discord →
+              </Link>
+            ) : null
+          }
+        >
+          {!serversLoaded && (
+            <div className="text-center py-6 text-sm text-muted-foreground">Loading…</div>
+          )}
+          {serversLoaded && servers.length === 0 && (
+            <div className="text-center py-6 text-sm text-muted-foreground">
+              No servers linked yet. Run{" "}
+              <code className="font-mono bg-secondary px-1.5 py-0.5 rounded">/link</code> or{" "}
+              <code className="font-mono bg-secondary px-1.5 py-0.5 rounded">h!link</code> in
+              your Discord server and click <strong>Authorize App</strong> to get started.
+            </div>
+          )}
+          {serversLoaded && servers.length > 0 && (
+            <div className="flex flex-wrap gap-3">
+              {servers.map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center gap-3 rounded-xl bg-secondary/40 border border-border px-4 py-3 min-w-[180px]"
+                >
+                  <span className="text-xl">🌙</span>
+                  <div>
+                    <div className="font-display font-medium text-sm">{s.name}</div>
+                    <div className="text-[10px] font-mono text-muted-foreground mt-0.5">
+                      {s.hibernation_enabled ? "hibernation on" : "hibernation off"}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-4">

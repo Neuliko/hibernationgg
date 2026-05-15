@@ -19,10 +19,19 @@ async function getServer(supabase, guild) {
 
 export async function ensureServer(supabase, guild) {
   const { data: existing } = await supabase
-    .from("discord_servers").select("id").eq("guild_id", guild.id).maybeSingle();
-  if (existing) return existing.id;
+    .from("discord_servers").select("id, discord_owner_id").eq("guild_id", guild.id).maybeSingle();
+  if (existing) {
+    if (!existing.discord_owner_id) {
+      await supabase.from("discord_servers")
+        .update({ discord_owner_id: guild.ownerId })
+        .eq("id", existing.id);
+    }
+    return existing.id;
+  }
   const { data, error } = await supabase
-    .from("discord_servers").insert({ guild_id: guild.id, name: guild.name }).select("id").single();
+    .from("discord_servers")
+    .insert({ guild_id: guild.id, name: guild.name, discord_owner_id: guild.ownerId })
+    .select("id").single();
   if (error) throw error;
   return data.id;
 }

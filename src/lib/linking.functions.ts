@@ -80,6 +80,29 @@ export const getMyLink = createServerFn({ method: "POST" })
   });
 
 /**
+ * Fetch Discord servers owned by a Clerk user (via their linked discord_user_id).
+ */
+export const getMyServers = createServerFn({ method: "POST" })
+  .inputValidator((input: { clerkUserId: string }) => input)
+  .handler(async ({ data }) => {
+    const { data: link } = await supabaseAdmin
+      .from("discord_links")
+      .select("discord_user_id")
+      .eq("clerk_user_id", data.clerkUserId)
+      .maybeSingle();
+
+    if (!link?.discord_user_id) return { servers: [] };
+
+    const { data: servers } = await supabaseAdmin
+      .from("discord_servers")
+      .select("id, guild_id, name, hibernation_enabled, created_at")
+      .eq("discord_owner_id", link.discord_user_id)
+      .order("created_at", { ascending: false });
+
+    return { servers: servers ?? [] };
+  });
+
+/**
  * Remove the link for a Clerk user.
  */
 export const unlinkDiscord = createServerFn({ method: "POST" })

@@ -122,9 +122,10 @@ async function handleLink(supabase, guild, user, ctx) {
 
   const embed = new EmbedBuilder()
     .setColor(BRAND)
-    .setTitle("🔗 Link your account")
+    .setTitle("🌙 Authorize Hibernation Portal")
     .setDescription(
-      "Click the button below to open the Hibernation Portal dashboard and link your Discord identity.\n\n" +
+      `Authorize the app to connect **${guild.name}** to your dashboard.\n\n` +
+      "Once authorized, your server will appear in your dashboard server list where you can manage hibernation settings.\n\n" +
       "The link is **one-time use** and expires in **10 minutes**."
     )
     .addFields(
@@ -136,7 +137,7 @@ async function handleLink(supabase, guild, user, ctx) {
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setLabel("Authorize with Hibernation Portal")
+      .setLabel("Authorize App")
       .setStyle(ButtonStyle.Link)
       .setURL(linkUrl)
       .setEmoji("🌙")
